@@ -128,14 +128,14 @@ def fit(t, params):
 def residual(params, t, flux): 
     '''Residual between the model and data'''
 #    return flux - fit(t, params)[0]
-    return fit(t, params)[0]-flux
+    return fit(t, params)[0]-flux   # use this
 
 def lightcurve(file):
     '''Reading the .fits file to extract all data'''
     hdul = fits.open(file)
     data = hdul[1].data
     data = pd.DataFrame(np.array(data))
-#    data = data.dropna(subset=['PDCSAP_FLUX'])
+#    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
     time = np.array(data['TIME'])
     time = time - time[0]
     T = time[-1]
@@ -288,9 +288,9 @@ for (f, nm) in zip(fits_files, fits_names):
                 all_rms.append(rms)
                 all_sigma_amps.append(sigma_amp)
                 new_guesses = [amp, freq, ph]
-                params.add('p_'+str(n)+'a', value = new_guesses[0])
-                params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2)
-                params.add('p_'+str(n)+'c', value = new_guesses[2])
+                params.add('p_'+str(n)+'a', value = new_guesses[0]) # changed: params.add('p_'+str(n)+'a', value = new_guesses[0], min=0, max=2*amp)
+                params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2) # changed: params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2)
+                params.add('p_'+str(n)+'c', value = new_guesses[2]) # changed: params.add('p_'+str(n)+'c', value = new_guesses[2], min=0, max=1)
                 #best_freqs = fit(time, params)[2]
                 max_amps = fit(time, params)[1]
                 res = minimize(residual, params, args=(time, lc0), method = 'leastsq') # method changed from 'least_squares' to 'leastsq'
