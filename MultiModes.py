@@ -293,7 +293,7 @@ for (f, nm) in zip(fits_files, fits_names):
                 params.add('p_'+str(n)+'c', value = new_guesses[2])
                 #best_freqs = fit(time, params)[2]
                 max_amps = fit(time, params)[1]
-                res = minimize(residual, params, args=(time, lc0), method = 'leastsq')
+                res = minimize(residual, params, args=(time, lc0), method = 'leastsq') # method changed from 'least_squares' to 'leastsq'
                 lc = res.residual
                 params = res.params
                 sigma_freqs = [np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/np.abs(a) for a in max_amps]
@@ -340,7 +340,7 @@ for (f, nm) in zip(fits_files, fits_names):
                 params.add('p_'+str(n)+'c', value = new_guesses[2])
                 #best_freqs = fit(time, params)[2]
                 max_amps = fit(time, params)[1]
-                res = minimize(residual, params, args=(time, lc0), method = 'leastsq')
+                res = minimize(residual, params, args=(time, lc0), method = 'leastsq') # method changed from 'least_squares' to 'leastsq'
                 lc = res.residual
                 params = res.params
                 sigma_freqs = [np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/np.abs(a) for a in max_amps]
