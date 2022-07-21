@@ -12,6 +12,7 @@ depending on the type of analysis you want to perform.
 @author: David Pamos Ortega (UGR)
 @supervisors: Dr. Juan Carlos Suárez Yanes (UGR) & Dr. Antonio García Hernández (UGR)
 @expert contributor: Dr. Javier Pascual Granado (IAA)
+Modified by Cristian Rodrigo on Thu 21 Jul 2022.
 """
 
 import numpy as np
