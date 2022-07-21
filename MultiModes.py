@@ -141,9 +141,10 @@ def lightcurve(file):
     T = time[-1]
     N = len(time)
     r = 1/T
-#    fluxes = np.array(data['PDCSAP_FLUX']) # comment for amplitude comparison with period04
+    fluxes = np.array(data['PDCSAP_FLUX'])
     mean_flux = np.mean(fluxes)
-    fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
+    # convert fluxes to mmag
+#   # fluxes = (fluxes-mean_flux)/mean_flux*1000  # comment for amplitude comparison with period04
     return time, fluxes, T, N, r
 
 def snr_or_fap(par):
