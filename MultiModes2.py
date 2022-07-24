@@ -2,17 +2,20 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Aug 12 20:25:19 2020
+
 MultiModes is a code to extract the most significant frequencies 
 from a sample of variable stars. For each of them, it calculates 
-the LombScargle periodogram and performs a non linear 
+the LombScargle periodogram and performs a nonlinear 
 simultaneous fit, using a multisine function, 
 to a set number of frequencies. As a stop criterion, 
 you can choose between the FAP or the SNR criterion, 
 depending on the type of analysis you want to perform. 
+
 @author: David Pamos Ortega (UGR)
 @supervisors: Dr. Juan Carlos Suárez Yanes (UGR) & Dr. Antonio García Hernández (UGR)
-@expert contributor: Dr. Javier Pascual Granado (IAA)
-Modified by Cristian Rodrigo on Thu 21 Jul 2022.
+@expert contributor: Dr. Javier Pascual Granado (IAA-CSIC)
+
+Modified by Cristian Rodrigo and Javier Pascual Granado on Jul 2022.
 """
 
 import numpy as np
@@ -27,15 +30,15 @@ import argparse
 import glob
 from timeit import default_timer as timer
 
-# Initial parameters
+# Default initial parameters
 
-osratio = 5 # Oversampling ratio, by default 
-max_freq = 100 # Maximum frequency in the periodogram, by default (for delta Scuti stars)
-sim_fit_n = 20 # Maximum number of frequencies of the simultaneous fit, by default
-stop = 'SNR' # Stop criterion, by default
-min_snr = 4.0 # Minimum value for SNR by default
-max_fap = 0.01 # Maximum value of FAP by default
-tail_per = 80 # Minimum frequency of the tail of the periodogram, for calculating noise (for delta Scuti stars)
+osratio = 5 # Oversampling ratio 
+max_freq = 100 # Max frequency in the periodogram
+sim_fit_n = 20 # Max number of frequencies of the simultaneous fit
+stop = 'SNR' # Stop criterion
+min_snr = 4.0 # Min value of Signal-to-Noise Ratio (SNR) for detection of a frequency
+max_fap = 0.01 # Max value of False Alarm Probability (FAP)
+tail_per = 80 # Min frequency of the tail of the periodogram used for noise estimation
 
 # Reading the initial file with the values of the parameters, if it exists 
 
@@ -76,18 +79,18 @@ elif 'FAP' in stop:
     print('Stop Criterion: FAP < ' + str(max_fap))
 
 
-# Creating the necessary lists
+# Initializing the necessary lists
 
-all_best_freqs = [] # The list of extracted frequencies
-all_max_amps = [] # The list of extracted amplitudes
-all_phs = [] # The list of extracted phases
-all_sigma_amps = [] # The list of minimum errors in the amplitudes
-all_sigma_freqs = [] # The list of minimum errors in the frequencies
-all_sigma_phs = [] # The list of minimum errors in the phases
+all_best_freqs = []  # extracted frequencies
+all_max_amps = []    # extracted amplitudes
+all_phs = []         # extracted phases
+all_sigma_amps = []  # min errors in the amplitudes
+all_sigma_freqs = [] # min errors in the frequencies
+all_sigma_phs = []   # min errors in the phases
 params = Parameters()
-all_faps = [] # Values of the False Alarm Probability for every extracted frequency
-S_N = [] # Values of the Signal To Noise relation for every extracted frequency
-all_rms = [] # Residual mean square of the signal in every step of the pre-whitening
+all_faps = []  # FAP values for each extracted frequency
+S_N = []       # SNR values for each extracted frequency
+all_rms = []   # RMS of the residuals for each step of the pre-whitening cascade
     
 # Defining all the necessary functions
 
@@ -137,9 +140,9 @@ def lightcurve(file):
 #    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
     time = np.array(data['TIME'])
     time = time - time[0]
-    T = time[-1]
+    T = time[-1] - time[0]
     N = len(time)
-    r = 1/T
+    r = 1/T   # Rayleigh frequency resolution
     fluxes = np.array(data['PDCSAP_FLUX'])
     mean_flux = np.mean(fluxes)
 #    fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
@@ -211,12 +214,11 @@ fits_names = sorted(fits_names)
 fits_files = sorted(fits_files)
 
 
-# Starting with the massive analysis
-
+# Starting with the iterative analysis
 
 columns = ['Number',
-           'f (c/d)',
-           'A (mmag)',
+           'f',
+           'A',
            stop]
 
 # Setting stop criterion
@@ -232,29 +234,31 @@ for (f, nm) in zip(fits_files, fits_names):
     if not os.path.exists(newpath):
         os.makedirs(newpath)
     data = lightcurve(f) # Extracting data of every light curve
-    time = data[0]
-    lc = data[1] # Light curve
-    T = data[2] # Total time of sampling
-    N = data[3] # Number of points of the light curve
-    rayleigh = data[4] # Rayleigh resolution of the sampling
-    sigma_lc = stats.sem(list(lc)) # 1-sigma error of the magnitude
+    time = data[0]     # Time vector
+    lc = data[1]       # Light curve
+    T = data[2]        # Total time span
+    N = data[3]        # Number of points
+    rayleigh = data[4] # Rayleigh resolution
+
+    sigma_lc = stats.sem(list(lc)) # 1-sigma error of fluxes
     sigma_amp = np.sqrt(2/N)*sigma_lc # 1-sigma error of the amplitude
-    lc_df = pd.DataFrame({'Time (d)':time, 'Amplitude (mmag)':list(lc)})
+    lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
     lc_df.to_csv(newpath+'lc.dat', sep = ' ', index=False, header = None)
-    lc_df.plot(kind='scatter', x='Time (d)', y = 'Amplitude (mmag)', color='blue', s = 1, title=nm)
+    lc_df.plot(kind='scatter', x='Time', y = 'Flux', color='blue', s = 1, title=nm)
     plt.savefig(newpath+'LC.png')
     plt.close()
     lc0 = lc
     ls0 = periodogram(time, lc0)
     periodograms = [ls0,] # Calculating the initial periodogram
     n_per = [0,]
-    per = pd.DataFrame({'Frequency (c/d)':ls0[1], 'Amplitude (mmag)':ls0[2]})
+    per = pd.DataFrame({'Frequency':ls0[1], 'Amplitude':ls0[2]})
     per.to_csv(newpath+'pg.dat', sep=' ', index=False, header = None)
-    per.plot(kind = 'line', x='Frequency (c/d)', y='Amplitude (mmag)', title = nm, legend = False)
-    plt.xlabel('Frequency (c/d)')
-    plt.ylabel('Amplitude (mmag)')
+    per.plot(kind = 'line', x='Frequency', y='Amplitude', title = nm, legend = False)
+    plt.xlabel('Frequency')
+    plt.ylabel('Amplitude')
     plt.savefig(newpath+'LS.png')
     plt.close()
+
     # Initialization of the lists to save the extracted frequencies, amplitudes and phases
     all_best_freqs = []
     all_max_amps = []
@@ -387,13 +391,17 @@ for (f, nm) in zip(fits_files, fits_names):
                            )
     
     
-    res = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})
-    res.to_csv(newpath+'res.dat', sep=' ', index=False, header = None)
+    res = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})  # residual spectrum after last iteration
+    reslc = pd.DataFrame({'Time': time, 'Residuals': lc}) # residual lightcurve after last iteration
+
+    res.to_csv(newpath+'res_ps.dat', sep=' ', index=False, header = None)
+    reslc.to_csv(newpath+'res_lc.dat', sep=' ', index=False, header = None)
+
     for (p, n) in zip(periodograms, n_per):
-        per = pd.DataFrame({'Frequency (c/d)':p[1], 'Amplitude (mmag)':p[2]})
-        per.plot(kind = 'line', x='Frequency (c/d)', y='Amplitude (mmag)', title = 'Periodogram after subtracting ' + str(n) + ' frecuencies', legend=False)
-        plt.xlabel('Frequency (c/d)')
-        plt.ylabel('Amplitude (mmag)')
+        per = pd.DataFrame({'Frequency':p[1], 'Amplitude':p[2]})
+        per.plot(kind = 'line', x='Frequency', y='Amplitude', title = 'Periodogram after subtracting ' + str(n) + ' frequencies', legend=False)
+        plt.xlabel('Frequency')
+        plt.ylabel('Amplitude')
         plt.savefig(newpath+'LS_' +str(n) + '.png')
         plt.close()
         
