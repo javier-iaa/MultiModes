@@ -436,6 +436,7 @@ for (f, nm) in zip(fits_files, fits_names):
         
 
     # Filtering the linear combinations of frequencies
+    """
     try:
         combineds = comb_freqs(prew_df)[0]
     
@@ -443,6 +444,7 @@ for (f, nm) in zip(fits_files, fits_names):
             prew_df = prew_df[prew_df.Freqs != f]
     except KeyError:
         pass
+    """    
     prew_df.to_csv(newpath+'best_modes.dat', sep = ' ', index = False, header = None)
     #time_df.to_csv(newpath+'velocity.dat', sep = ' ', index = False, header = None)
     end = timer()
