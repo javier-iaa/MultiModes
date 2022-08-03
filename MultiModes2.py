@@ -367,8 +367,8 @@ for (f, nm) in zip(fits_files, fits_names):
                     ls0 = periodogram(time, lc0)
                     periodograms.append(ls0)
                     n_per.append(sim_fit_n+n_per[-1])
-                    n = 1                
-                    params = Parameters()        
+                    n = 1
+                    params = Parameters()
             else:
                 if n!= 1:
                     all_best_freqs += fit(time, params)[2]
@@ -390,13 +390,15 @@ for (f, nm) in zip(fits_files, fits_names):
                             'rms':all_rms}
                            )
     
-    
-    res = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})  # residual spectrum after last iteration
-    reslc = pd.DataFrame({'Time': time, 'Residuals': lc}) # residual lightcurve after last iteration
-
+    # residual spectrum after last iteration
+    res = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})
     res.to_csv(newpath+'res_ps.dat', sep=' ', index=False, header = None)
+        
+    # residual lightcurve after last iteration
+    reslc = pd.DataFrame({'Time': time, 'Residuals': lc})
     reslc.to_csv(newpath+'res_lc.dat', sep=' ', index=False, header = None)
 
+    # save plots
     for (p, n) in zip(periodograms, n_per):
         per = pd.DataFrame({'Frequency':p[1], 'Amplitude':p[2]})
         per.plot(kind = 'line', x='Frequency', y='Amplitude', title = 'Periodogram after subtracting ' + str(n) + ' frequencies', legend=False)
@@ -407,7 +409,7 @@ for (f, nm) in zip(fits_files, fits_names):
         
     
     # Filtering the frequencies that are closer than the Rayleigh resolution
-
+    """
     added_freqs = []
     added_amps = []
     copied_freqs = all_best_freqs.copy()
@@ -436,7 +438,6 @@ for (f, nm) in zip(fits_files, fits_names):
         
 
     # Filtering the linear combinations of frequencies
-    """
     try:
         combineds = comb_freqs(prew_df)[0]
     
