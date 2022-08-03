@@ -130,7 +130,7 @@ def fit(t, params):
 def residual(params, t, flux): 
     '''Residual between the model and data'''
     return flux - fit(t, params)[0]
- #   return fit(t, params)[0]-flux   # use this
+ #   return fit(t, params)[0]-flux
 
 def lightcurve(file):
     '''Reading the .fits file to extract all data'''
@@ -138,13 +138,15 @@ def lightcurve(file):
     data = hdul[1].data
     data = pd.DataFrame(np.array(data))
 #    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
-    time = np.array(data['TIME'])
+#    time = np.array(data['TIME'])  # read column name in LC file disable
+    time = np.array(data['col1'])   #
     time = time - time[0]
     T = time[-1] - time[0]
     N = len(time)
     r = 1/T   # Rayleigh frequency resolution
-    fluxes = np.array(data['PDCSAP_FLUX'])
-    mean_flux = np.mean(fluxes)
+#    fluxes = np.array(data['PDCSAP_FLUX']) # read column name in LC file disable
+    fluxes = np.array(data['col2'])         #
+#   mean_flux = np.mean(fluxes)
 #    fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
     return time, fluxes, T, N, r
 
