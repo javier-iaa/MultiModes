@@ -106,15 +106,16 @@ def periodogram(time, flux):
     frequency, power = ls.autopower(method = 'fast', maximum_frequency = max_freq, samples_per_peak = osratio)
     best_frequency = frequency[np.argmax(power)]
     amps = 2*np.sqrt(power/len(time))
+    ampmax = amps[np.argmax(power)]
     noise = []
     for (f, a) in zip(frequency, amps):
         if f > tail_per:
             noise += [a]
     noise = np.mean(noise)
-    return ls, frequency, amps, best_frequency, 2*np.sqrt(power.max()/len(time)), power, noise
+    return ls, frequency, amps, best_frequency, ampmax, power, noise
 
 def fit(t, params):
-    '''Multi sine fit function with all the parameters of frequencies, amplitudes, phases and mean floats'''
+    '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
     y = 0
     pars = params.valuesdict()
     amps_dict = {k:pars[k] for k in pars if 'a' in k}
@@ -129,8 +130,8 @@ def fit(t, params):
 
 def residual(params, t, flux): 
     '''Residual between the model and data'''
-    return flux - fit(t, params)[0]
- #   return fit(t, params)[0]-flux
+    return flux + fit(t, params)[0]
+#    return fit(t, params)[0] - flux
 
 def lightcurve(file):
     '''Reading the .fits file to extract all data'''
@@ -138,16 +139,15 @@ def lightcurve(file):
     data = hdul[1].data
     data = pd.DataFrame(np.array(data))
 #    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
-#    time = np.array(data['TIME'])  # read column name in LC file disable
-    time = np.array(data['col1'])   #
+    time = np.array( data.iloc[:,0] )     # read first column as time
     time = time - time[0]
     T = time[-1] - time[0]
     N = len(time)
     r = 1/T   # Rayleigh frequency resolution
-#    fluxes = np.array(data['PDCSAP_FLUX']) # read column name in LC file disable
-    fluxes = np.array(data['col2'])         #
+    fluxes = np.array( data.iloc[:,1] )   # read second column as fluxes
 #   mean_flux = np.mean(fluxes)
-#    fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
+#   fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
+
     return time, fluxes, T, N, r
 
 def snr_or_fap(par):
@@ -206,8 +206,8 @@ parser = argparse.ArgumentParser(description='Open directory with .fits files')
 parser.add_argument('--d', required = 'True', type = str, help ='Select a .fits files directory to be opened')
 args = parser.parse_args()
 d = args.d
-# Crating the list with all the files and filenames to do massive analysis
 
+# Creating the list with all the files and filenames
 pth = './'+d+'/'
 fits_files = [f for f in glob.glob(pth+'*.fits')]
 fits_names = [os.path.basename(f) for f in glob.iglob(pth+'*.fits')]
@@ -217,14 +217,12 @@ fits_files = sorted(fits_files)
 
 
 # Starting with the iterative analysis
-
 columns = ['Number',
            'f',
            'A',
            stop]
 
 # Setting stop criterion
-
 parade = snr_or_fap(stop)[0]
 snr_or_faps = snr_or_fap(stop)[1]
 
@@ -244,16 +242,22 @@ for (f, nm) in zip(fits_files, fits_names):
 
     sigma_lc = stats.sem(list(lc)) # 1-sigma error of fluxes
     sigma_amp = np.sqrt(2/N)*sigma_lc # 1-sigma error of the amplitude
+    
+    # Save lightcurve as ASCII file and scatter plot
     lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
     lc_df.to_csv(newpath+'lc.dat', sep = ' ', index=False, header = None)
     lc_df.plot(kind='scatter', x='Time', y = 'Flux', color='blue', s = 1, title=nm)
     plt.savefig(newpath+'LC.png')
     plt.close()
+    
+    # Calculating the initial periodogram
     lc0 = lc
     ls0 = periodogram(time, lc0)
-    periodograms = [ls0,] # Calculating the initial periodogram
+    periodograms = [ls0,]
     n_per = [0,]
     per = pd.DataFrame({'Frequency':ls0[1], 'Amplitude':ls0[2]})
+    
+    # Save the initial periodogram as ASCII file and line plot
     per.to_csv(newpath+'pg.dat', sep=' ', index=False, header = None)
     per.plot(kind = 'line', x='Frequency', y='Amplitude', title = nm, legend = False)
     plt.xlabel('Frequency')
@@ -271,22 +275,27 @@ for (f, nm) in zip(fits_files, fits_names):
     all_sigma_phs = []
     all_rms = []
     params = Parameters()
+    
+    # Print header table
     print(dash)
     print('{:<15s}{:>18s}{:>25s}{:>32}' .format(columns[0],
                                                 columns[1],
                                                 columns[2],
                                                 columns[3]))
     print(dash)
+    
     while n <= sim_fit_n:
         ls = periodogram(time, lc)
-        freq = ls[3]
-        amp = ls[4]
-        rms = np.sqrt(sum(lc**2)/len(lc))
-        sigma_freq = np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/amp
+        freq = ls[3]  # freq at max power
+        amp = ls[4]   # amp at max power
+        rms = np.sqrt( sum(lc**2)/N )
+        no = ls[6]    # noise
+        sigma_freq = np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/amp  # freq error
         ph = 0.5
-        snr = amp/ls[6]
-        var = len(time)*(ls[6])**2/4
+        snr = amp/no
+        var = (N/4)*no**2
         fap = 1 - (1 - np.exp(-ls[5].max()/var))**(N/2)
+        
         if parade == min_snr:
             if snr > parade: # Stop criterion
                 snr_or_faps.append(snr)
@@ -294,17 +303,21 @@ for (f, nm) in zip(fits_files, fits_names):
                 all_sigma_amps.append(sigma_amp)
                 new_guesses = [amp, freq, ph]
                 params.add('p_'+str(n)+'a', value = new_guesses[0]) # changed: params.add('p_'+str(n)+'a', value = new_guesses[0], min=0, max=2*amp)
-                params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2) # changed: params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2)
+                params.add('p_'+str(n)+'b', value = new_guesses[1], min=freq-rayleigh/2, max=freq+rayleigh/2)
                 params.add('p_'+str(n)+'c', value = new_guesses[2]) # changed: params.add('p_'+str(n)+'c', value = new_guesses[2], min=0, max=1)
                 #best_freqs = fit(time, params)[2]
                 max_amps = fit(time, params)[1]
                 res = minimize(residual, params, args=(time, lc0), method = 'leastsq') # method changed from 'least_squares' to 'leastsq'
                 lc = res.residual
                 params = res.params
+                
+                # Error estimation
                 sigma_freqs = [np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/np.abs(a) for a in max_amps]
                 sigma_freq = np.mean(sigma_freqs)
                 sigma_phs = [sigma_amp/np.abs(a) for a in max_amps]
                 sigma_ph = np.mean(sigma_phs)
+                
+                # Print table of extracted frequencies from the LS periodogram
                 data = [num, freq, amp, snr]
                 print('{:<15d}{:>18f}{:>25f}{:>32}'.format(data[0],
                                                            data[1],
