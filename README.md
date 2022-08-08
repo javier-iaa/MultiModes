@@ -4,7 +4,7 @@
 - Modifications by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo are aimed to make the code more efficient, accesible and extensible.
 
 # Citations
-- If MultiModes is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
+- If MultiModes2 is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
 
 # Input
 - Directory with light curves in format .fits, corrected from 'outliers' and 'nan' values.
@@ -45,13 +45,13 @@ Screen output shows the parameters for the peak at maximum amplitude of the Lomb
 - scipy 1.5.2
 
 # What does it do
-MultiModes takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits format and the initial parameters written in a text file.
+MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits format and the initial parameters written in a text file.
 
 With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as  stop criterion that S/N is greater than 4, (Breger 1993). Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
  
 Multimodes make use of [astropy](https://www.astropy.org) for the calculation of the periodograms and [lmfit](https://lmfit.github.io/lmfit-py/) for the non-linear and simultaneous fitting of the extracted signals, using the non-linear least squares method for python.
 
 # How to run it
-- Copy the downloaded files MultiModes.py and ini.txt in your working directory.
-- Copy in your working directory the directory with the light curves to be analysed.
-- In in your working directory, type the command: run MultiModes2.py --d name_of_directory_with_light_curves, if you use Anaconda or similar python enviroment, or type the command: python MultiModes.py --d name_of_directory_with_light_curves, if you use terminal unix.
+- Copy MultiModes2.py and ini.txt to your working directory.
+- Put also the directory with the light curves to be analysed inside your working directory.
+- Enter your working directory and type the command: `python MultiModes2.py --d <lightcurves_directory>`
