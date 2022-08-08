@@ -39,6 +39,9 @@ stop = 'SNR' # Stop criterion
 min_snr = 4.0 # Min value of Signal-to-Noise Ratio (SNR) for detection of a frequency
 max_fap = 0.01 # Max value of False Alarm Probability (FAP)
 tail_per = 80 # Min frequency of the tail of the periodogram used for noise estimation
+timecol = 1 # column order for time and fluxes 
+fluxcol = 2
+save_plot_per = 0 # save plots of periodogram every xx iterations
 
 # Reading the initial file with the values of the parameters, if it exists 
 
@@ -66,6 +69,12 @@ if os.path.isfile(filename):
                 min_snr = float(line.split(' ')[1])
             if line.startswith("stop"):
                 stop = str(line.split(' ')[1])
+            if line.startswith("timecol"):
+                timecol = int(line.split(' ')[1])
+            if line.startswith("fluxcol"):
+                fluxcol = int(line.split(' ')[1])
+            if line.startswith("save_plot_per"):
+            	save_plot_per = int(line.split(' ')[1])
 else:
     print('Not ini.txt. Values of the parameters by default:')     
 
@@ -139,12 +148,12 @@ def lightcurve(file):
     data = hdul[1].data
     data = pd.DataFrame(np.array(data))
 #    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
-    time = np.array( data.iloc[:,0] )     # read first column as time
+    time = np.array( data.iloc[:,timecol-1] )     # extract times
     time = time - time[0]
     T = time[-1] - time[0]
     N = len(time)
     r = 1/T   # Rayleigh frequency resolution
-    fluxes = np.array( data.iloc[:,1] )   # read second column as fluxes
+    fluxes = np.array( data.iloc[:,fluxcol-1] )   # extract fluxes
 #   mean_flux = np.mean(fluxes)
 #   fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
 
@@ -414,13 +423,15 @@ for (f, nm) in zip(fits_files, fits_names):
     reslc.to_csv(newpath+'res_lc.dat', sep=' ', index=False, header = None)
 
     # save plots
-    for (p, n) in zip(periodograms, n_per):
-        per = pd.DataFrame({'Frequency':p[1], 'Amplitude':p[2]})
-        per.plot(kind = 'line', x='Frequency', y='Amplitude', title = 'Periodogram after subtracting ' + str(n) + ' frequencies', legend=False)
-        plt.xlabel('Frequency')
-        plt.ylabel('Amplitude')
-        plt.savefig(newpath+'LS_' +str(n) + '.png')
-        plt.close()
+    if save_plot_per !=0:
+        for (p, n) in zip(periodograms, n_per):
+    	    if np.mod(n, save_plot_per)==0:
+                per = pd.DataFrame({'Frequency':p[1], 'Amplitude':p[2]})
+                per.plot(kind = 'line', x='Frequency', y='Amplitude', title = 'Periodogram after subtracting ' + str(n) + ' frequencies', legend=False)
+                plt.xlabel('Frequency')
+                plt.ylabel('Amplitude')
+                plt.savefig(newpath+'LS_' +str(n) + '.png')
+                plt.close()
         
     
     # Filtering the frequencies that are closer than the Rayleigh resolution
