@@ -7,7 +7,7 @@
 - If MultiModes2 is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
 
 # Input
-- Directory with light curves in format .fits, corrected from 'outliers' and 'nan' values.
+- Directory with light curves in fits format, corrected from 'outliers' and 'nan' values.
 - ini.txt with optional parameters
 
 # Optional parameters:
@@ -17,7 +17,6 @@
 - stop: Stop criterion, FAP or SNR, SNR by default
 - min_snr: Minimum signal to noise ratio, 4 by default (Breger 1993)
 - max_fap: Maximum value of the False Alarm Probability, 0.01 by default (Balona et al. 2014)
-- tail_per: Minimum  frequency of the tail of the periodogram, 80 c/d by default (delta Scuti stars)
 - timecol: column for time 
 - fluxcol: column for fluex
 - save_plot_per: save plots of periodogram every xx iterations (disabled with 0).
@@ -53,5 +52,8 @@ Multimodes make use of [astropy](https://www.astropy.org) for the calculation of
 
 # How to run it
 - Copy MultiModes2.py and ini.txt to your working directory.
-- Put also the directory with the light curves to be analysed inside your working directory.
-- Enter your working directory and type the command: `python MultiModes2.py --d <lightcurves_directory>`
+- Put also the directory or file with the light curves to be analysed inside your working directory.
+- Enter your working directory and type the command: 
+`python MultiModes2.py --d <lightcurves_directory>`
+or alternatively
+`python MultiModes2.py --file <lightcurve_file>`
