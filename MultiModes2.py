@@ -12,10 +12,7 @@ you can choose between the FAP or the SNR criterion,
 depending on the type of analysis you want to perform. 
 
 @author: David Pamos Ortega (UGR)
-@supervisors: Dr. Juan Carlos Suárez Yanes (UGR) & Dr. Antonio García Hernández (UGR)
-@expert contributor: Dr. Javier Pascual Granado (IAA-CSIC)
-
-Modified by Cristian Rodrigo and Javier Pascual Granado on Jul 2022.
+Modified by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo on Jul 2022.
 """
 
 import numpy as np
@@ -38,17 +35,18 @@ sim_fit_n = 20 # Max number of frequencies of the simultaneous fit
 stop = 'SNR' # Stop criterion
 min_snr = 4.0 # Min value of Signal-to-Noise Ratio (SNR) for detection of a frequency
 max_fap = 0.01 # Max value of False Alarm Probability (FAP)
-tail_per = 80 # Min frequency of the tail of the periodogram used for noise estimation
+#tail_per = 80 # Min frequency of the tail of the periodogram used for noise estimation
 timecol = 1 # column order for time and fluxes 
 fluxcol = 2
 save_plot_per = 0 # save plots of periodogram every xx iterations
-
-# Reading the initial file with the values of the parameters, if it exists 
 
 dash = 100*'-'
 print(dash)
 print('Running MultiModes'.center(110))
 print(dash)
+
+
+# Reading the initial file with the values of the parameters, if it exists 
 
 filename = 'ini.txt'
 if os.path.isfile(filename):
@@ -63,8 +61,8 @@ if os.path.isfile(filename):
                 max_freq = float(line.split(' ')[1])
             if line.startswith("max_fap"):
                 max_fap = float(line.split(' ')[1])  
-            if line.startswith("tail_per"):
-                tail_per = float(line.split(' ')[1])
+            #if line.startswith("tail_per"):
+            #    tail_per = float(line.split(' ')[1])
             if line.startswith("min_snr"):
                 min_snr = float(line.split(' ')[1])
             if line.startswith("stop"):
@@ -76,7 +74,7 @@ if os.path.isfile(filename):
             if line.startswith("save_plot_per"):
             	save_plot_per = int(line.split(' ')[1])
 else:
-    print('Not ini.txt. Values of the parameters by default:')     
+    print('Not ini.txt. Default values will be used:')     
 
 
 print('Number of frequencies of the simultaneous fit: ' + str(sim_fit_n))
@@ -105,23 +103,33 @@ all_rms = []   # RMS of the residuals for each step of the pre-whitening cascade
 
 def sinusoid(t, A, f, ph): 
     ''' Sine function to fit a frequency of a light curve'''
-    sin = A*np.sin(2*np.math.pi*(f*t + ph))
-    return sin
+    return A*np.sin(2*np.math.pi*(f*t + ph))
 
+def noise_estimate(time, flux, n=20): 
+    '''Estimation of noise using the mean of near-Nyquist frequency bins'''
+    ls = LombScargle(time, flux, normalization = 'psd', center_data = True, fit_mean = False)
+    frequency, power = ls.autopower()
+    l = len(time)
+    amps = 2*np.sqrt(power/l)
+    if l<=n:
+        n=l-1
 
-def periodogram(time, flux): 
+    return np.mean( amps[(n-1):-1] ) # last n bins excluding nyquist
+
+def periodogram(time, flux):
     '''Fast Lomb Scargle to calculate the periodogram (Press & Ribicky 1989)'''
     ls = LombScargle(time, flux, normalization = 'psd', center_data = True, fit_mean = False)
     frequency, power = ls.autopower(method = 'fast', maximum_frequency = max_freq, samples_per_peak = osratio)
-    best_frequency = frequency[np.argmax(power)]
+    indmpow = np.argmax(power)
+    best_frequency = frequency[indmpow]
     amps = 2*np.sqrt(power/len(time))
-    ampmax = amps[np.argmax(power)]
-    noise = []
-    for (f, a) in zip(frequency, amps):
-        if f > tail_per:
-            noise += [a]
-    noise = np.mean(noise)
-    return ls, frequency, amps, best_frequency, ampmax, power, noise
+    ampmax = amps[indmpow]
+    #noise = []
+    #for (f, a) in zip(frequency, amps):
+    #    if f > tail_per:
+    #        noise += [a]
+    #noise = np.mean(noise)
+    return ls, frequency, amps, best_frequency, ampmax, power#, noise
 
 def fit(t, params):
     '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
@@ -212,18 +220,22 @@ def comb_freqs(pd):
     
 # Creating the directory with the fits files as argument to the command line    
 parser = argparse.ArgumentParser(description='Open directory with .fits files')
-parser.add_argument('--d', required = 'True', type = str, help ='Select a .fits files directory to be opened')
-args = parser.parse_args()
-d = args.d
+command_group = parser.add_mutually_exclusive_group()
+command_group.add_argument('--d', type = str, help ='Select a directory that contains fits files')
+command_group.add_argument('--file', type = str, help ='Select a single .fits file to be opened')
+args = parser.parse_args()  
 
 # Creating the list with all the files and filenames
-pth = './'+d+'/'
-fits_files = [f for f in glob.glob(pth+'*.fits')]
-fits_names = [os.path.basename(f) for f in glob.iglob(pth+'*.fits')]
-fits_names = [os.path.splitext(f)[0] for f in fits_names]
-fits_names = sorted(fits_names)
-fits_files = sorted(fits_files)
-
+if args.d:
+    pth = './'+args.d+'/'
+    fits_files = [f for f in glob.glob(pth+'*.fits')]
+    fits_names = [os.path.basename(f) for f in glob.iglob(pth+'*.fits')]
+    fits_names = [os.path.splitext(f)[0] for f in fits_names]
+    fits_names = sorted(fits_names)
+    fits_files = sorted(fits_files)
+else:
+    fits_files = [ './'+args.file ]
+    fits_names = [ os.path.splitext(args.file)[0] ]
 
 # Starting with the iterative analysis
 columns = ['Number',
@@ -266,6 +278,9 @@ for (f, nm) in zip(fits_files, fits_names):
     n_per = [0,]
     per = pd.DataFrame({'Frequency':ls0[1], 'Amplitude':ls0[2]})
     
+    # Noise level estimation
+    no = noise_estimate(time, lc)
+
     # Save the initial periodogram as ASCII file and line plot
     per.to_csv(newpath+'pg.dat', sep=' ', index=False, header = None)
     per.plot(kind = 'line', x='Frequency', y='Amplitude', title = nm, legend = False)
@@ -298,7 +313,6 @@ for (f, nm) in zip(fits_files, fits_names):
         freq = ls[3]  # freq at max power
         amp = ls[4]   # amp at max power
         rms = np.sqrt( sum(lc**2)/N )
-        no = ls[6]    # noise
         sigma_freq = np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/amp  # freq error
         ph = 0.5
         snr = amp/no
