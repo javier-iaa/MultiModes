@@ -6,8 +6,17 @@
 # Citations
 - If MultiModes2 is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
 
+# Requirements
+python >=3.8 with the following modules installed:
+- numpy >=1.19.2
+- matplotlib >=3.3.2
+- pandas >=1.1.2
+- astropy >=4.0.2
+- lmfit >=1.0.2
+- scipy >=1.5.2
+
 # Input
-- Directory with light curves in fits format, corrected from 'outliers' and 'nan' values.
+- Directory with light curves in fits or ASCII format (.dat or .txt), corrected from 'outliers' and 'nan' values. Note that the first row (header) in ASCII files is dropped by default.
 - ini.txt with optional parameters
 
 # Optional parameters:
@@ -34,17 +43,8 @@
   
 Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.
 
-# Pre-Installed Packages Requirements
-- python 3.8.5
-- numpy 1.19.2
-- matplotlib 3.3.2
-- pandas 1.1.2
-- astropy 4.0.2
-- lmfit 1.0.2
-- scipy 1.5.2
-
 # What does it do
-MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits format and the initial parameters written in a text file.
+MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits or ascii format and the initial parameters written in a text file named ini.txt
 
 With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as  stop criterion that S/N is greater than 4, (Breger 1993). Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
  
