@@ -151,17 +151,23 @@ def residual(params, t, flux):
 #    return fit(t, params)[0] - flux
 
 def lightcurve(file):
-    '''Reading the .fits file to extract all data'''
-    hdul = fits.open(file)
-    data = hdul[1].data
-    data = pd.DataFrame(np.array(data))
-#    data = data.dropna(subset=['PDCSAP_FLUX']) # do not use
-    time = np.array( data.iloc[:,timecol-1] )     # extract times
+    '''Reading the file to extract all data'''
+    if isfits:
+        hdul = fits.open(file)
+        data = hdul[1].data
+        data = pd.DataFrame(np.array(data))
+        time = np.array( data.iloc[:,timecol-1] )     # extract times
+        fluxes = np.array( data.iloc[:,fluxcol-1] )   # extract fluxes
+    elif isascii:
+        data = np.loadtxt(file, skiprows=1)
+        time = data[:,timecol-1]     # extract times
+        fluxes = data[:,fluxcol-1]  # extract fluxes
+
     time = time - time[0]
     T = time[-1] - time[0]
     N = len(time)
     r = 1/T   # Rayleigh frequency resolution
-    fluxes = np.array( data.iloc[:,fluxcol-1] )   # extract fluxes
+
 #   mean_flux = np.mean(fluxes)
 #   fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
 
@@ -219,23 +225,47 @@ def comb_freqs(pd):
 
     
 # Creating the directory with the fits files as argument to the command line    
-parser = argparse.ArgumentParser(description='Open directory with .fits files')
+parser = argparse.ArgumentParser(description='Open the directory with the files to be processed')
 command_group = parser.add_mutually_exclusive_group()
-command_group.add_argument('--d', type = str, help ='Select a directory that contains fits files')
-command_group.add_argument('--file', type = str, help ='Select a single .fits file to be opened')
-args = parser.parse_args()  
+command_group.add_argument('--d', type = str, help ='Select a directory containing a list of files')
+command_group.add_argument('--file', type = str, help ='Select a single file to be opened')
+args = parser.parse_args()
 
 # Creating the list with all the files and filenames
+isfits = False
+isascii = False
 if args.d:
     pth = './'+args.d+'/'
     fits_files = [f for f in glob.glob(pth+'*.fits')]
-    fits_names = [os.path.basename(f) for f in glob.iglob(pth+'*.fits')]
-    fits_names = [os.path.splitext(f)[0] for f in fits_names]
-    fits_names = sorted(fits_names)
-    fits_files = sorted(fits_files)
+    ascii_files = [f for f in glob.glob(pth+'*.dat')]
+    if len(ascii_files)==0:
+        if len(fits_files)==0:
+            print("No input files found.")
+
+        fname = [os.path.splitext(f)[0] for f in fits_files]
+        fits_files = sorted(fits_files)
+        filepath = fits_files
+        isfits = True
+    else:
+        fname = [os.path.splitext(f)[0] for f in ascii_files]
+        ascii_files = sorted(ascii_files)
+        filepath = ascii_files
+        isascii = True
+    
+    fname = sorted(fname)
+
 else:
-    fits_files = [ './'+args.file ]
-    fits_names = [ os.path.splitext(args.file)[0] ]
+    fname = list( os.path.splitext(args.file) )
+    if fname[1]=='.fits':
+        fits_files = [ './'+args.file ]
+        filepath = fits_files
+        isfits = True
+    elif fname[1]=='.dat' or fname[1]=='.txt':
+        ascii_files = [ './'+args.file ]
+        filepath = ascii_files
+        isascii = True
+
+    fname = [ fname[0] ]
 
 # Starting with the iterative analysis
 columns = ['Number',
@@ -247,7 +277,7 @@ columns = ['Number',
 parade = snr_or_fap(stop)[0]
 snr_or_faps = snr_or_fap(stop)[1]
 
-for (f, nm) in zip(fits_files, fits_names):
+for (f, nm) in zip(filepath, fname):
     start = timer() # Counting executing time for every analysed light curve
     n = 1
     num = 1
