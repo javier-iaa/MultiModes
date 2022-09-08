@@ -39,7 +39,7 @@ max_fap = 0.01 # Max value of False Alarm Probability (FAP)
 timecol = 1 # column order for time and fluxes 
 fluxcol = 2
 save_plot_per = 0 # save plots of periodogram every xx iterations
-
+#save_plot_resps = 0 # save plot of the power spectrum of the residual after last iteration
 dash = 100*'-'
 print(dash)
 print('Running MultiModes'.center(110))
@@ -73,6 +73,8 @@ if os.path.isfile(filename):
                 fluxcol = int(line.split(' ')[1])
             if line.startswith("save_plot_per"):
             	save_plot_per = int(line.split(' ')[1])
+            if line.startswith("save_plot_resps"):
+            	save_plot_resps = int(line.split(' ')[1])
 else:
     print('Not ini.txt. Default values will be used:')     
 
@@ -294,12 +296,14 @@ for (f, nm) in zip(filepath, fname):
     sigma_lc = stats.sem(list(lc)) # 1-sigma error of fluxes
     sigma_amp = np.sqrt(2/N)*sigma_lc # 1-sigma error of the amplitude
     
-    # Save lightcurve as ASCII file and scatter plot
+    # Save lightcurve as ASCII file (for FITS) and a scatter plot
+    """
     lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
     lc_df.to_csv(newpath+'lc.dat', sep = ' ', index=False, header = None)
     lc_df.plot(kind='scatter', x='Time', y = 'Flux', color='blue', s = 1, title=nm)
     plt.savefig(newpath+'LC.png')
     plt.close()
+    """
     
     # Calculating the initial periodogram
     lc0 = lc
@@ -312,12 +316,14 @@ for (f, nm) in zip(filepath, fname):
     no = noise_estimate(time, lc)
 
     # Save the initial periodogram as ASCII file and line plot
+    """
     per.to_csv(newpath+'pg.dat', sep=' ', index=False, header = None)
     per.plot(kind = 'line', x='Frequency', y='Amplitude', title = nm, legend = False)
     plt.xlabel('Frequency')
     plt.ylabel('Amplitude')
     plt.savefig(newpath+'LS.png')
     plt.close()
+    """
 
     # Initialization of the lists to save the extracted frequencies, amplitudes and phases
     all_best_freqs = []
@@ -459,8 +465,11 @@ for (f, nm) in zip(filepath, fname):
                            )
     
     # residual spectrum after last iteration
-    res = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})
-    res.to_csv(newpath+'res_ps.dat', sep=' ', index=False, header = None)
+    """
+    if save_plot_resps !=0:
+    	resps = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})
+    	resps.to_csv(newpath+'res_ps.dat', sep=' ', index=False, header = None)
+    """
         
     # residual lightcurve after last iteration
     reslc = pd.DataFrame({'Time': time, 'Residuals': lc})
