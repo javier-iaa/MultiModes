@@ -1,13 +1,21 @@
-# What is it?
-- MultiModes2 is a Python code to extract the most significant frequencies of a set of light curves (or other time series) files contained in a folder.
-- It is a fork of the original code authored by David Pamos Ortega (University of Granada).
-- Modifications by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo are aimed to make the code more efficient, accesible and extensible.
+## What is it?
+MultiModes2 is a Python code to extract the most significant frequencies of a set of lightcurve (or other time series) files contained in a folder.
+It is a fork of the original Multimodes code authored by David Pamos Ortega (University of Granada).  
 
-# Citations
-- If MultiModes2 is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
+Modifications by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo are aimed to make the code more efficient, accesible and extensible.
 
-# Requirements
-python >=3.8 with the following modules installed:
+## Description
+MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits or ascii format and the initial parameters written in a text file named ini.txt
+
+With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as  stop criterion that S/N is greater than 4, (Breger 1993). Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
+ 
+Multimodes make use of [astropy](https://www.astropy.org) for the calculation of the periodograms and [lmfit](https://lmfit.github.io/lmfit-py/) for the non-linear and simultaneous fitting of the extracted signals, using the non-linear least squares method for python.
+
+## Citations
+If MultiModes2 is used, please, cite the author this way: Pamos Ortega, D. et al. 2022 (https://doi.org/10.1093/mnras/stac864)
+
+## Requirements
+Python >=3.8 with the following modules installed:
 - numpy >=1.19.2
 - matplotlib >=3.3.2
 - pandas >=1.1.2
@@ -15,11 +23,11 @@ python >=3.8 with the following modules installed:
 - lmfit >=1.0.2
 - scipy >=1.5.2
 
-# Input
+## Input
 - Directory with light curves in fits or ASCII format (.dat or .txt), corrected from 'outliers' and 'nan' values. Note that the first row (header) in ASCII files is dropped by default.
 - ini.txt with optional parameters
 
-# Optional parameters:
+## Optional parameters:
 - sim_fit_n: Number of simultaneous peaks to be fitted before extracting to the original light curve for obtaining the residual: 20 by default
 - max_freq: Maximum value of the analysed frequencies domain: 100 c/d by default (delta Scuti stars)
 - os_ratio: oversampling factor, 5 by default
@@ -30,7 +38,7 @@ python >=3.8 with the following modules installed:
 - fluxcol: column for fluex
 - save_plot_per: save plots of periodogram every xx iterations (disabled with 0).
   
-# Output
+## Output
 - Directory 'results', containing subdirectories corresponding to every analysed light curve. Each subdirectory contains:
   - file best_modes.dat, containing the values of the most significant frequencies, amplitudes, phases, corresponding errors and FAPs/SNRs
   - file lc.dat, the light curve in format .dat for using with other codes, such as SigSpec (Reegen 2007)
@@ -42,13 +50,6 @@ python >=3.8 with the following modules installed:
   - res_ps.dat, with the periodogram of the final residual after extracting all the most significant frequencies.
   
 Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.
-
-# What does it do
-MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits or ascii format and the initial parameters written in a text file named ini.txt
-
-With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as  stop criterion that S/N is greater than 4, (Breger 1993). Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
- 
-Multimodes make use of [astropy](https://www.astropy.org) for the calculation of the periodograms and [lmfit](https://lmfit.github.io/lmfit-py/) for the non-linear and simultaneous fitting of the extracted signals, using the non-linear least squares method for python.
 
 # How to run it
 - Copy MultiModes2.py and ini.txt to your working directory.
