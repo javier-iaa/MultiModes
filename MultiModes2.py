@@ -40,53 +40,6 @@ timecol = 1 # column order for time and fluxes
 fluxcol = 2
 save_plot_per = 0 # save plots of periodogram every xx iterations
 #save_plot_resps = 0 # save plot of the power spectrum of the residual after last iteration
-dash = 100*'-'
-print(dash)
-print('Running MultiModes'.center(110))
-print(dash)
-
-
-# Reading the initial file with the values of the parameters, if it exists 
-
-filename = 'ini.txt'
-if os.path.isfile(filename):
-    with open(filename, 'r') as file:
-        for line in file:
-            line.replace("\n", "")
-            if line.startswith("sim_fit_n"):
-                sim_fit_n = int(line.split(' ')[1])
-            if line.startswith("osratio"):
-                osratio = float(line.split(' ')[1])
-            if line.startswith("maxfreq"):
-                max_freq = float(line.split(' ')[1])
-            if line.startswith("max_fap"):
-                max_fap = float(line.split(' ')[1])  
-            #if line.startswith("tail_per"):
-            #    tail_per = float(line.split(' ')[1])
-            if line.startswith("min_snr"):
-                min_snr = float(line.split(' ')[1])
-            if line.startswith("stop"):
-                stop = str(line.split(' ')[1])
-            if line.startswith("timecol"):
-                timecol = int(line.split(' ')[1])
-            if line.startswith("fluxcol"):
-                fluxcol = int(line.split(' ')[1])
-            if line.startswith("save_plot_per"):
-            	save_plot_per = int(line.split(' ')[1])
-            if line.startswith("save_plot_resps"):
-            	save_plot_resps = int(line.split(' ')[1])
-else:
-    print('Not ini.txt. Default values will be used:')     
-
-
-print('Number of frequencies of the simultaneous fit: ' + str(sim_fit_n))
-print('Samples per peak: ' + str(osratio))
-print('Maximum frequency: ' + str(max_freq))
-if 'SNR' in stop:
-    print('Stop Criterion: SNR > ' + str(min_snr))
-elif 'FAP' in stop:
-    print('Stop Criterion: FAP < ' + str(max_fap))
-
 
 # Initializing the necessary lists
 
@@ -101,7 +54,7 @@ all_faps = []  # FAP values for each extracted frequency
 S_N = []       # SNR values for each extracted frequency
 all_rms = []   # RMS of the residuals for each step of the pre-whitening cascade
     
-# Defining all the necessary functions
+# Function definitions
 
 def sinusoid(t, A, f, ph): 
     ''' Sine function to fit a frequency of a light curve'''
@@ -183,9 +136,10 @@ def snr_or_fap(par):
     elif 'FAP' in par:
         return max_fap,  all_faps
 
+'''
 def comb_freqs(pd):
-    ''' Function to detect the combination frequencies once all of them
-        having been extracted'''
+    # Function to detect the combination frequencies once all of them having been extracted
+    
     freqs = pd['Freqs']
     amps = pd['Amps']
     f1 = freqs[0]
@@ -224,14 +178,67 @@ def comb_freqs(pd):
                 n1_n2_values.append(v)
     
     return comb_freqs, comb_amps, n1_n2_values
+'''
 
+# Here begins the main part of the code
+
+dash = 100*'-'
+print(dash)
+print('Running MultiModes'.center(110))
+print(dash)
     
 # Creating the directory with the fits files as argument to the command line    
 parser = argparse.ArgumentParser(description='Open the directory with the files to be processed')
+parser.add_argument('--p', type = str, help = 'Select a parameters file')
 command_group = parser.add_mutually_exclusive_group()
 command_group.add_argument('--d', type = str, help ='Select a directory containing a list of files')
 command_group.add_argument('--file', type = str, help ='Select a single file to be opened')
 args = parser.parse_args()
+
+# Reading the initial file with the values of the parameters, if it exists 
+if args.p:
+    paramname = args.p
+else:
+    paramname = 'ini.txt'
+
+if os.path.isfile(paramname):
+    with open(paramname, 'r') as file:
+        for line in file:
+            line.replace("\n", "")
+            if line.startswith("sim_fit_n"):
+                sim_fit_n = int(line.split(' ')[1])
+            if line.startswith("osratio"):
+                osratio = float(line.split(' ')[1])
+            if line.startswith("maxfreq"):
+                max_freq = float(line.split(' ')[1])
+            if line.startswith("max_fap"):
+                max_fap = float(line.split(' ')[1])  
+            #if line.startswith("tail_per"):
+            #    tail_per = float(line.split(' ')[1])
+            if line.startswith("min_snr"):
+                min_snr = float(line.split(' ')[1])
+            if line.startswith("stop"):
+                stop = str(line.split(' ')[1])
+            if line.startswith("timecol"):
+                timecol = int(line.split(' ')[1])
+            if line.startswith("fluxcol"):
+                fluxcol = int(line.split(' ')[1])
+            if line.startswith("save_plot_per"):
+            	save_plot_per = int(line.split(' ')[1])
+            if line.startswith("save_plot_resps"):
+            	save_plot_resps = int(line.split(' ')[1])
+else:
+    print('Not ini.txt. Default values will be used:')     
+
+
+print('Number of frequencies of the simultaneous fit: ' + str(sim_fit_n))
+print('Samples per peak: ' + str(osratio))
+print('Maximum frequency: ' + str(max_freq))
+if 'SNR' in stop:
+    print('Stop Criterion: SNR > ' + str(min_snr))
+elif 'FAP' in stop:
+    print('Stop Criterion: FAP < ' + str(max_fap))
+
 
 # Creating the list with all the files and filenames
 isfits = False
@@ -283,7 +290,11 @@ for (f, nm) in zip(filepath, fname):
     start = timer() # Counting executing time for every analysed light curve
     n = 1
     num = 1
-    newpath = './results/' + nm + '/'
+    if os.path.isfile(paramname):
+        newpath = './results/' + nm + '_' + paramname[:-4] + '/'
+    else:
+        newpath = './results/' + nm + '/'
+        
     if not os.path.exists(newpath):
         os.makedirs(newpath)
     data = lightcurve(f) # Extracting data of every light curve
