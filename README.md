@@ -58,3 +58,7 @@ Screen output shows the parameters for the peak at maximum amplitude of the Lomb
 `python MultiModes2.py --d <lightcurves_directory>`
 or alternatively
 `python MultiModes2.py --file <lightcurve_file>`
+
+If you want to use other parameter file than ini.txt you can call the program using the flag --p <ini_file>. For example, 
+`python MultiModes2.py --file lightcurve.dat --p ini2.txt`
+In this example a suffix "ini2" will be added to the output folder such as \results\lightcurve_ini2 thus allowing to run the program with different configurations.
