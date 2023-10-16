@@ -238,7 +238,7 @@ if os.path.isfile(paramname):
             if line.startswith("save_plot_resps"):
                 save_plot_resps = int(line.split(' ')[1])
 else:
-    print('Not ini.txt. Default values will be used:')
+    print('No param file. Default values will be used:')
 
 
 print('Number of frequencies of the simultaneous fit: ' + str(sim_fit_n))
@@ -257,6 +257,9 @@ if args.d:
     pth = './'+args.d+'/'
     fits_files = [f for f in glob.glob(pth+'*.fits')]
     ascii_files = [f for f in glob.glob(pth+'*.dat')]
+    if len(ascii_files) == 0:
+        ascii_files = [f for f in glob.glob(pth+'*.txt')]
+        
     if len(ascii_files) == 0:
         if len(fits_files) == 0:
             print("No input files found.")
@@ -502,10 +505,16 @@ for (f, nm) in zip(filepath, fname):
     # Define the path for the output
 
     if os.path.isfile(paramname):
-        ofolder = './results/' + pth[2:-1] + '+' + paramname[:-4] + '/'
-        filesp = nm[2:].split('/')
-        file = filesp[1]
-        newpath = ofolder + file + '/'
+        if args.d:
+            ofolder = './results/' + pth[2:-1] + '+' + paramname[:-4] + '/'
+            filesp = nm[2:].split('/')
+            file = filesp[1]
+            newpath = ofolder + file + '/'
+            
+        else:
+            ofolder = './results/' + '+' + paramname[:-4] + '/'
+            newpath = ofolder + nm + '/' 
+            
     else:
         newpath = './results/' + nm + '/'
 
