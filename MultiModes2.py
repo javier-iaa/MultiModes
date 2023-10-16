@@ -266,7 +266,6 @@ if args.d:
         filepath = fits_files
         isfits = True
     else:
-        pth = './/'
         fname = [os.path.splitext(f)[0] for f in ascii_files]
         ascii_files = sorted(ascii_files)
         filepath = ascii_files
@@ -275,6 +274,7 @@ if args.d:
     fname = sorted(fname)
 
 else:
+    pth = './/'
     fname = list(os.path.splitext(args.file))
     if fname[1] == '.fits':
         fits_files = ['./'+args.file]
