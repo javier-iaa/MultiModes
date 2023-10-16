@@ -266,6 +266,7 @@ if args.d:
         filepath = fits_files
         isfits = True
     else:
+    	pth = './/'
         fname = [os.path.splitext(f)[0] for f in ascii_files]
         ascii_files = sorted(ascii_files)
         filepath = ascii_files
@@ -501,7 +502,7 @@ for (f, nm) in zip(filepath, fname):
     # Define the path for the output
 
     if os.path.isfile(paramname):
-        ofolder = './results/' + pth[2:-1] + '_' + paramname[:-4] + '/'
+        ofolder = './results/' + pth[2:-1] + '+' + paramname[:-4] + '/'
         filesp = nm[2:].split('/')
         file = filesp[1]
         newpath = ofolder + file + '/'
