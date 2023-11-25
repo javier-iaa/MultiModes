@@ -221,7 +221,7 @@ if os.path.isfile(paramname):
                 sim_fit_n = int(line.split(' ')[1])
             if line.startswith("osratio"):
                 osratio = float(line.split(' ')[1])
-            if line.startswith("maxfreq"):
+            if line.startswith("max_freq"):
                 max_freq = float(line.split(' ')[1])
             if line.startswith("max_fap"):
                 max_fap = float(line.split(' ')[1])
