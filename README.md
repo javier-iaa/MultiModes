@@ -40,7 +40,7 @@ Python >=3.8 with the following modules installed:
   
 ## Output
 - Directory 'results', containing subdirectories corresponding to every analysed light curve. Each subdirectory contains:
-  - file best_modes.dat, containing the values of the most significant frequencies, amplitudes, phases, corresponding errors and FAPs/SNRs
+  - file best_modes.dat with 8 columns containing the values of the most significant frequencies, amplitudes, phases, the corresponding errors, SNR/FAP and the rms
   - file lc.dat, the light curve in format .dat for using with other codes, such as SigSpec (Reegen 2007)
   - file pg.dat, the periodogram of the original light curve
   - LC.png, the plot of the light curve
