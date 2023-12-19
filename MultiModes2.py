@@ -116,7 +116,6 @@ def residual(params, t, flux):
 #    return fit(t, params)[0] - flux
 
 
-@jit(nopython=True)
 def lightcurve(file):
     '''Reading the file to extract all data'''
     if isfits:
