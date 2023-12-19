@@ -62,7 +62,6 @@ def sinusoid(t, A, f, ph):
     return A*np.sin(2*np.math.pi*(f*t + ph))
 
 
-@jit(nopython=True)
 def noise_estimate(time, flux, n=20):
     """Estimation of noise using the mean of near-Nyquist frequency bins."""
     ls = LombScargle(time, flux, normalization='psd',
