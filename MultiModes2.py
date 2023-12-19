@@ -56,7 +56,7 @@ S_N = []       # SNR values for each extracted frequency
 
 # ---- FUNCTION DEFINITIONS ----
 
-@jit(nopython=True)
+@jit
 def sinusoid(t, A, f, ph):
     """Sine function to fit a frequency of a light curve."""
     return A*np.sin(2*np.math.pi*(f*t + ph))
@@ -91,7 +91,7 @@ def periodogram(time, flux):
     return ls, frequency, amps, best_frequency, ampmax, power#, noise
 
 
-@jit(nopython=True)
+@jit
 def fit(t, params):
     '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
     y = 0
@@ -107,7 +107,7 @@ def fit(t, params):
     return y, amps, freqs, phs
 
 
-@jit(nopython=True)
+@jit
 def residual(params, t, flux): 
     '''Residual between the model and data'''
     return flux + fit(t, params)[0]
