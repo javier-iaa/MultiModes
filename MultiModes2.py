@@ -141,7 +141,6 @@ def lightcurve(file):
     return time, fluxes, T, N, r
 
 
-@jit(nopython=True)
 def snr_or_fap(par):
     '''Choosing between the SNR or the FAP stop criterion. 
        SNR by default'''
