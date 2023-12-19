@@ -26,6 +26,7 @@ import os
 import argparse
 import glob
 from timeit import default_timer as timer
+from numba import jit
 
 # Default initial parameters
 
@@ -55,12 +56,13 @@ S_N = []       # SNR values for each extracted frequency
 
 # ---- FUNCTION DEFINITIONS ----
 
-
+@jit(nopython=True)
 def sinusoid(t, A, f, ph):
     """Sine function to fit a frequency of a light curve."""
     return A*np.sin(2*np.math.pi*(f*t + ph))
 
 
+@jit(nopython=True)
 def noise_estimate(time, flux, n=20):
     """Estimation of noise using the mean of near-Nyquist frequency bins."""
     ls = LombScargle(time, flux, normalization='psd',
@@ -74,6 +76,7 @@ def noise_estimate(time, flux, n=20):
     return np.mean(amps[(n-1):-1])  # last n bins excluding nyquist
 
 
+@jit(nopython=True)
 def periodogram(time, flux):
     '''Fast Lomb Scargle to calculate the periodogram (Press & Ribicky 1989)'''
     ls = LombScargle(time, flux, normalization = 'psd', center_data = True, fit_mean = False)
@@ -90,6 +93,7 @@ def periodogram(time, flux):
     return ls, frequency, amps, best_frequency, ampmax, power#, noise
 
 
+@jit(nopython=True)
 def fit(t, params):
     '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
     y = 0
@@ -105,12 +109,14 @@ def fit(t, params):
     return y, amps, freqs, phs
 
 
+@jit(nopython=True)
 def residual(params, t, flux): 
     '''Residual between the model and data'''
     return flux + fit(t, params)[0]
 #    return fit(t, params)[0] - flux
 
 
+@jit(nopython=True)
 def lightcurve(file):
     '''Reading the file to extract all data'''
     if isfits:
@@ -135,6 +141,7 @@ def lightcurve(file):
     return time, fluxes, T, N, r
 
 
+@jit(nopython=True)
 def snr_or_fap(par):
     '''Choosing between the SNR or the FAP stop criterion. 
        SNR by default'''
