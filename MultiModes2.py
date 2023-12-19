@@ -76,7 +76,6 @@ def noise_estimate(time, flux, n=20):
     return np.mean(amps[(n-1):-1])  # last n bins excluding nyquist
 
 
-@jit(nopython=True)
 def periodogram(time, flux):
     '''Fast Lomb Scargle to calculate the periodogram (Press & Ribicky 1989)'''
     ls = LombScargle(time, flux, normalization = 'psd', center_data = True, fit_mean = False)
