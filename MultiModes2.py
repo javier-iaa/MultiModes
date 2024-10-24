@@ -16,6 +16,7 @@ Author: Javier Pascual Granado (IAA-CSIC)
 Contributors: Sebastiano de Franciscis, Cristian Rodrigo.
 
 Version: 0.1 (see CHANGES)
+21:05 oct 24, 2024
 """
 
 import numpy as np
@@ -236,6 +237,8 @@ if os.path.isfile(paramname):
                 fluxcol = int(line.split(' ')[1])
             if line.startswith("save_plot_per"):
                 save_plot_per = int(line.split(' ')[1])
+            if line.startswith("save_data_per"):
+                save_data_per = int(line.split(' ')[1])
             if line.startswith("save_plot_resps"):
                 save_plot_resps = int(line.split(' ')[1])
             if line.startswith("header_lines"):
