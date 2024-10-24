@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 12 20:25:19 2020
+Multimodes2 
 
-MultiModes is a code to extract the most significant frequencies
-from a set of time series. For each of them, it calculates
-the LombScargle periodogram and performs a nonlinear
-simultaneous fit, using a multisine function,
-to a set number of frequencies. As a stop criterion,
-you can choose between the FAP or the SNR criterion,
+MultiModes is a highly customisable code to extract the most significant 
+frequencies from a set of time series. For each of them, it calculates
+the LombScargle periodogram and performs a nonlinear simultaneous fit, 
+using a multisine function, to a set number of frequencies. As a stop 
+criterion, you can choose between the FAP or the SNR criterion,
 depending on the type of analysis you want to perform.
 
-@author: David Pamos Ortega (UGR)
-Modified by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo on Jul 2022.
+Author: Javier Pascual Granado (IAA-CSIC)
+- Adapted from the original code from David Pamos Ortega (UGR).
+
+Contributors: Sebastiano de Franciscis, Cristian Rodrigo.
+
+Version: 0.1 (see CHANGES)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from math import pi
 from astropy.timeseries import LombScargle
 from astropy.io import fits
 from lmfit import Parameters, minimize
@@ -26,7 +30,6 @@ import os
 import argparse
 import glob
 from timeit import default_timer as timer
-from numba import jit
 
 # Default initial parameters
 
@@ -39,7 +42,10 @@ max_fap = 0.01  # Max value of False Alarm Probability (FAP)
 timecol = 1  # column order for time and fluxes
 fluxcol = 2
 save_plot_per = 0  # save plots of periodogram every xx iterations
+save_data_per = 0  # save data of residual every xx iterations
 # save_plot_resps = 0  # save plot of residual ps after last iteration
+max_iter = 1000
+header_lines = 1 # skip header lines
 
 # Initializing the necessary lists
 
@@ -56,10 +62,9 @@ S_N = []       # SNR values for each extracted frequency
 
 # ---- FUNCTION DEFINITIONS ----
 
-@jit
 def sinusoid(t, A, f, ph):
-    """Sine function to fit a frequency of a light curve."""
-    return A*np.sin(2*np.math.pi*(f*t + ph))
+    """Sine function to fit a harmonic component to a light curve."""
+    return A*np.sin(2*pi*(f*t + ph))
 
 
 def noise_estimate(time, flux, n=20):
@@ -74,24 +79,19 @@ def noise_estimate(time, flux, n=20):
 
     return np.mean(amps[(n-1):-1])  # last n bins excluding nyquist
 
-
 def periodogram(time, flux):
     '''Fast Lomb Scargle to calculate the periodogram (Press & Ribicky 1989)'''
-    ls = LombScargle(time, flux, normalization = 'psd', center_data = True, fit_mean = False)
-    frequency, power = ls.autopower(method = 'fast', maximum_frequency = max_freq, samples_per_peak = osratio)
+    ls = LombScargle(time, flux, normalization = 'psd', 
+                     center_data = True, fit_mean = False)
+    frequency, power = ls.autopower(method = 'fast', maximum_frequency = max_freq, 
+                                    samples_per_peak = osratio)
     indmpow = np.argmax(power)
     best_frequency = frequency[indmpow]
     amps = 2*np.sqrt(power/len(time))
     ampmax = amps[indmpow]
-    #noise = []
-    #for (f, a) in zip(frequency, amps):
-    #    if f > tail_per:
-    #        noise += [a]
-    #noise = np.mean(noise)
-    return ls, frequency, amps, best_frequency, ampmax, power#, noise
 
+    return ls, frequency, amps, best_frequency, ampmax, power
 
-@jit
 def fit(t, params):
     '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
     y = 0
@@ -106,13 +106,11 @@ def fit(t, params):
         y += sinusoid(t, a, f, p) 
     return y, amps, freqs, phs
 
-
-@jit
 def residual(params, t, flux): 
     '''Residual between the model and data'''
-    return flux + fit(t, params)[0]
-#    return fit(t, params)[0] - flux
+    res = fit(t, params)[0] - flux
 
+    return res
 
 def lightcurve(file):
     '''Reading the file to extract all data'''
@@ -123,7 +121,7 @@ def lightcurve(file):
         time = np.array( data.iloc[:,timecol-1] )     # extract times
         fluxes = np.array( data.iloc[:,fluxcol-1] )   # extract fluxes
     elif isascii:
-        data = np.loadtxt(file, skiprows=1)
+        data = np.loadtxt(file, skiprows=header_lines)
         time = data[:,timecol-1]     # extract times
         fluxes = data[:,fluxcol-1]  # extract fluxes
 
@@ -240,6 +238,8 @@ if os.path.isfile(paramname):
                 save_plot_per = int(line.split(' ')[1])
             if line.startswith("save_plot_resps"):
                 save_plot_resps = int(line.split(' ')[1])
+            if line.startswith("header_lines"):
+                header_lines = int(line.split(' ')[1])
 else:
     print('No param file. Default values will be used:')
 
@@ -356,14 +356,14 @@ for (f, nm) in zip(filepath, fname):
         freq = ls[3]  # freq at max power
         amp = ls[4]   # amp at max power
         rms = np.sqrt(sum(lc**2)/N)
-        sigma_freq = np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/amp  # freq error
+        sigma_freq = np.sqrt(6/N)/(pi*T)*sigma_lc/amp  # freq error
         ph = 0.5
         snr = amp/no
         var = (N/4)*no**2
         fap = 1 - (1 - np.exp(-ls[5].max()/var))**(N/2)
 
         if parade == min_snr:
-            if snr > parade:  # Stop criterion
+            if snr > parade and num < max_iter:  # Stop criterion
                 snr_or_faps.append(snr)
                 all_rms.append(rms)
                 all_sigma_amps.append(sigma_amp)
@@ -381,7 +381,7 @@ for (f, nm) in zip(filepath, fname):
                 params = res.params
 
                 # Error estimation
-                sigma_freqs = [np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/np.abs(a)
+                sigma_freqs = [np.sqrt(6/N)/(pi*T)*sigma_lc/np.abs(a)
                              for a in max_amps]
                 sigma_freq = np.mean(sigma_freqs)
                 sigma_phs = [sigma_amp/np.abs(a) for a in max_amps]
@@ -393,6 +393,14 @@ for (f, nm) in zip(filepath, fname):
                                                            data[1],
                                                            data[2],
                                                            data[3]))
+                
+                # Save residuals
+                if save_data_per != 0:
+                    if np.mod(num, save_data_per) == 0:
+                        lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
+                        lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
+                                      index=False, header = None)
+
                 n += 1
                 num += 1
                 if n > sim_fit_n:
@@ -433,7 +441,7 @@ for (f, nm) in zip(filepath, fname):
                                method='leastsq')
                 lc = res.residual
                 params = res.params
-                sigma_freqs = [np.sqrt(6/N)/(np.math.pi*T)*sigma_lc/np.abs(a)
+                sigma_freqs = [np.sqrt(6/N)/(pi*T)*sigma_lc/np.abs(a)
                                for a in max_amps]
                 sigma_freq = np.mean(sigma_freqs)
                 sigma_phs = [sigma_amp/np.abs(a) for a in max_amps]
@@ -443,6 +451,13 @@ for (f, nm) in zip(filepath, fname):
                                                            data[1],
                                                            data[2],
                                                            data[3]))
+                # Save residuals
+                if save_data_per != 0:
+                    if np.mod(num, save_data_per) == 0:
+                        lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
+                        lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
+                                      index=False, header = None)
+
                 n += 1
                 num += 1
                 if n > sim_fit_n:
