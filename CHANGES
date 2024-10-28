@@ -1,7 +1,7 @@
 Multimodes2 update file.
 
 v0.1
-- new parameter save_data_per to save a file containing the residuals every xx iterations.
+- new parameter save_data_res to save a file containing the residuals every xx iterations.
 - new parameter max_iter
 - new parameter header_lines to skip the header lines (previously it was set to 1).
 - Several fixes, code clean and optimised.
