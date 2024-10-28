@@ -16,7 +16,7 @@ Author: Javier Pascual Granado (IAA-CSIC)
 Contributors: Sebastiano de Franciscis, Cristian Rodrigo.
 
 Version: 0.1 (see CHANGES)
-21:05 oct 24, 2024
+11:00 oct 26, 2024
 """
 
 import numpy as np
@@ -43,7 +43,7 @@ max_fap = 0.01  # Max value of False Alarm Probability (FAP)
 timecol = 1  # column order for time and fluxes
 fluxcol = 2
 save_plot_per = 0  # save plots of periodogram every xx iterations
-save_data_per = 0  # save data of residual every xx iterations
+save_data_res = 0  # save data of residual every xx iterations
 # save_plot_resps = 0  # save plot of residual ps after last iteration
 max_iter = 1000
 header_lines = 1 # skip header lines
@@ -237,8 +237,8 @@ if os.path.isfile(paramname):
                 fluxcol = int(line.split(' ')[1])
             if line.startswith("save_plot_per"):
                 save_plot_per = int(line.split(' ')[1])
-            if line.startswith("save_data_per"):
-                save_data_per = int(line.split(' ')[1])
+            if line.startswith("save_data_res"):
+                save_data_res = int(line.split(' ')[1])
             if line.startswith("save_plot_resps"):
                 save_plot_resps = int(line.split(' ')[1])
             if line.startswith("header_lines"):
@@ -324,6 +324,25 @@ for (f, nm) in zip(filepath, fname):
     sigma_lc = stats.sem(list(lc))  # 1-sigma error of fluxes
     sigma_amp = np.sqrt(2/N)*sigma_lc  # 1-sigma error of the amplitude
 
+    # Define the path for the output
+
+    if os.path.isfile(paramname):
+        if args.d:
+            ofolder = './results/' + pth[2:-1] + '+' + paramname[:-4] + '/'
+            filesp = nm[2:].split('/')
+            file = filesp[1]
+            newpath = ofolder + file + '/'
+            
+        else:
+            ofolder = './results/' + '+' + paramname[:-4] + '/'
+            newpath = ofolder + nm + '/' 
+            
+    else:
+        newpath = './results/' + nm + '/'
+
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+
     # Calculating the initial periodogram
     lc0 = lc
     ls0 = periodogram(time, lc0)
@@ -398,8 +417,8 @@ for (f, nm) in zip(filepath, fname):
                                                            data[3]))
                 
                 # Save residuals
-                if save_data_per != 0:
-                    if np.mod(num, save_data_per) == 0:
+                if save_data_res != 0:
+                    if np.mod(num, save_data_res) == 0:
                         lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
                         lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                       index=False, header = None)
@@ -455,8 +474,8 @@ for (f, nm) in zip(filepath, fname):
                                                            data[2],
                                                            data[3]))
                 # Save residuals
-                if save_data_per != 0:
-                    if np.mod(num, save_data_per) == 0:
+                if save_data_res != 0:
+                    if np.mod(num, save_data_res) == 0:
                         lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
                         lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                       index=False, header = None)
@@ -522,25 +541,6 @@ for (f, nm) in zip(filepath, fname):
     except KeyError:
         pass
     """
-
-    # Define the path for the output
-
-    if os.path.isfile(paramname):
-        if args.d:
-            ofolder = './results/' + pth[2:-1] + '+' + paramname[:-4] + '/'
-            filesp = nm[2:].split('/')
-            file = filesp[1]
-            newpath = ofolder + file + '/'
-            
-        else:
-            ofolder = './results/' + '+' + paramname[:-4] + '/'
-            newpath = ofolder + nm + '/' 
-            
-    else:
-        newpath = './results/' + nm + '/'
-
-    if not os.path.exists(newpath):
-        os.makedirs(newpath)
 
     # Write residual lightcurve after last iteration
     reslc = pd.DataFrame({'Time': time, 'Residuals': lc})
