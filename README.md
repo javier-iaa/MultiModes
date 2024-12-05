@@ -63,13 +63,15 @@ or alternatively
 
 If you want to use other parameter file than ini.txt you can call the program using the flag --p <ini_file>. For example, 
 `python MultiModes2.py --file lightcurve.dat --p ini2.txt`
-In this example a suffix "ini2" will be added to the output folder such as \results\lightcurve_ini2 thus allowing to run the program with different configurations.
+In this example a suffix "ini2" will be added to the output folder such as `\results\lightcurve_ini2` thus allowing to run the program with different configurations.
 
 Since v0.1.1 MultiModes2 can be also imported from a Jupyter Notebook. For example:
 
+```
 >>> import MultiModes2 as mm2
 >>> args = mm2.arguments(['--file', 'example.txt'])
 >>> mm2.multimodes(args)
+```
 
 The output, though, will not appear in the notebook yet.
 
