@@ -1,8 +1,10 @@
 ## What is it?
 MultiModes2 is a Python code to extract the most significant frequencies of a set of lightcurve (or other time series) files contained in a folder.
-It is a fork of the original Multimodes code authored by David Pamos Ortega (University of Granada).  
+The original Multimodes code is authored by David Pamos Ortega (University of Granada).  
 
-Modifications by Javier Pascual Granado (IAA-CSIC) and Cristian Rodrigo are aimed to make the code more efficient, accesible and extensible.
+Modifications by Javier Pascual Granado (IAA-CSIC) are aimed to make the code more efficient, accesible and extensible.
+
+Other contributors: Antonio García Hernández (UGR), Sebastiano de Franciscis (IAA-CSIC) and Cristian Rodrigo.
 
 ## Description
 MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits or ascii format and the initial parameters written in a text file named ini.txt
@@ -62,3 +64,12 @@ or alternatively
 If you want to use other parameter file than ini.txt you can call the program using the flag --p <ini_file>. For example, 
 `python MultiModes2.py --file lightcurve.dat --p ini2.txt`
 In this example a suffix "ini2" will be added to the output folder such as \results\lightcurve_ini2 thus allowing to run the program with different configurations.
+
+Since v0.1.1 MultiModes2 can be also imported from a Jupyter Notebook. For example:
+
+>>> import MultiModes2 as mm2
+>>> args = mm2.arguments(['--file', 'example.txt'])
+>>> mm2.multimodes(args)
+
+The output, though, will not appear in the notebook yet.
+
