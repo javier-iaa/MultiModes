@@ -1,5 +1,16 @@
 Multimodes2 update file.
 
+v0.1.1 # Added by Antonio García Hernández
+- FEATURE: MultiModes2 can be imported from a jupyter notebook or run in the terminal. See README.md for instructions.
+- defaults function sets default parameter values. 
+- osratio and max_freq are not global anymore
+- isfits, isascii, timecol, fluxcol an    d headerline are not global anymore
+- min_snr, S_N, max_fap and all_faps are not global anymore
+- function arguments() parse the optional arguments
+- dash is not global anymore
+- Now, we have to pass the values of min_snr, S_N, max_fap and all_faps to snr_or_fap()
+- Special variable __name__ == "__main__":
+
 v0.1
 - new parameter save_data_res to save a file containing the residuals every xx iterations.
 - new parameter max_iter
