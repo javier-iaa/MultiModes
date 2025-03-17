@@ -15,8 +15,8 @@ Author: Javier Pascual Granado (IAA-CSIC)
 
 Contributors: Antonio García, Sebastiano de Franciscis, Cristian Rodrigo
 
-Version: 0.1 (see CHANGES)
-17:00 dec 5, 2024
+Version: 0.1.2 (see CHANGES)
+20:00 mar 17, 2025
 """
 
 import numpy as np
@@ -45,9 +45,9 @@ def defaults():
     max_fap = 0.01  # Max value of False Alarm Probability (FAP) # Multimodes
     timecol = 1  # column order for time and fluxes # lightcurve
     fluxcol = 2 # lightcurve
-    save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
+    #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
     save_data_res = 0  # save data of residual every xx iterations # Multimodes
-    # save_plot_resps = 0  # save plot of residual ps after last iteration
+    save_plot_resps = 0  # write residual spectrum after last iteration
     max_iter = 1000 # Multimodes
     header_lines = 1 # skip header lines # lightcurve
 
@@ -360,8 +360,8 @@ def multimodes(args, dash = 100*'-'):
         # Calculating the initial periodogram
         lc0 = lc
         ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq)  # osratio and max_freq are not global anymore
-        periodograms = [ls0, ]
-        n_per = [0, ]
+        #periodograms = [ls0, ]
+        #n_per = [0, ]
         per = pd.DataFrame({'Frequency': ls0[1], 'Amplitude': ls0[2]})
 
         # Noise level estimation
@@ -446,9 +446,9 @@ def multimodes(args, dash = 100*'-'):
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
                         lc0 = lc
-                        ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
-                        periodograms.append(ls0)
-                        n_per.append(sim_fit_n+n_per[-1])
+                        #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
+                        #periodograms.append(ls0)
+                        #n_per.append(sim_fit_n+n_per[-1])
                         n = 1
                         params = Parameters()
                 else:
@@ -503,9 +503,9 @@ def multimodes(args, dash = 100*'-'):
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
                         lc0 = lc
-                        ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
-                        periodograms.append(ls0)
-                        n_per.append(sim_fit_n+n_per[-1])
+                        #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
+                        #periodograms.append(ls0)
+                        #n_per.append(sim_fit_n+n_per[-1])
                         n = 1
                         params = Parameters()
                 else:
@@ -518,7 +518,7 @@ def multimodes(args, dash = 100*'-'):
                     break
 
         # Filtering the frequencies that are closer than the Rayleigh resolution
-        """
+        """ TO REVISE AND UNCOMMENT AFTER TESTING
         added_freqs = []
         added_amps = []
         copied_freqs = all_best_freqs.copy()
@@ -574,6 +574,7 @@ def multimodes(args, dash = 100*'-'):
                     header=None)
 
         # Save plots
+        """ NOT VERY USEFUL AND WASTE RESOURCES
         if save_plot_per != 0:
             for (p, n) in zip(periodograms, n_per):
                 if np.mod(n, save_plot_per) == 0:
@@ -585,9 +586,10 @@ def multimodes(args, dash = 100*'-'):
                     plt.ylabel('Amplitude')
                     plt.savefig(newpath+'LS_' + str(n) + '.png')
                     plt.close()
+        """
 
         # Write lightcurve as ASCII file (for FITS) and a scatter plot
-        """
+        """ NOT VERY USEFUL
         lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
         lc_df.to_csv(newpath+'lc.dat', sep = ' ', index=False, header = None)
         lc_df.plot(kind='scatter', x='Time', y = 'Flux', color='blue', s = 1,
@@ -597,7 +599,7 @@ def multimodes(args, dash = 100*'-'):
         """
 
         # Save the initial periodogram as ASCII file and line plot
-        """
+        """ ADD FLAG FOR THIS BEFORE UNCOMMENT
         per.to_csv(newpath+'pg.dat', sep=' ', index=False, header = None)
         per.plot(kind = 'line', x='Frequency', y='Amplitude', title = nm,
                 legend = False)
@@ -608,11 +610,9 @@ def multimodes(args, dash = 100*'-'):
         """
 
         # Write residual spectrum after last iteration
-        """
         if save_plot_resps !=0:
             resps = pd.DataFrame({'Frequencies': ls[1], 'Amplitudes': ls[2]})
             resps.to_csv(newpath+'res_ps.dat', sep=' ', index=False, header = None)
-        """
 
         end = timer()
 
