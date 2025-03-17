@@ -63,7 +63,8 @@ def defaults():
     S_N = []       # SNR values for each extracted frequency # snr_or_faps
     # all_rms = []  # Residual RMS for each step of the prewhitening cascade
 
-    return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N
+    #return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N
+    return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, max_iter, header_lines, all_faps, S_N
 
 def sinusoid(t, A, f, ph):
     """Sine function to fit a harmonic component to a light curve."""
@@ -221,7 +222,8 @@ def multimodes(args, dash = 100*'-'):
     # args = parser.parse_args()
 
     # Default initial parameters. 
-    osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
+    #osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
+    osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
 
     # Reading the initial file with the values of the parameters, if it exists
     if args.p:
@@ -249,8 +251,8 @@ def multimodes(args, dash = 100*'-'):
                     timecol = int(line.split(' ')[1])
                 if line.startswith("fluxcol"):
                     fluxcol = int(line.split(' ')[1])
-                if line.startswith("save_plot_per"):
-                    save_plot_per = int(line.split(' ')[1])
+                #if line.startswith("save_plot_per"):
+                #    save_plot_per = int(line.split(' ')[1])
                 if line.startswith("save_data_res"):
                     save_data_res = int(line.split(' ')[1])
                 if line.startswith("save_plot_resps"):
