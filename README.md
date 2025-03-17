@@ -37,19 +37,18 @@ Python >=3.8 with the following modules installed:
 - min_snr: Minimum signal to noise ratio, 4 by default (Breger 1993)
 - max_fap: Maximum value of the False Alarm Probability, 0.01 by default (Balona et al. 2014)
 - timecol: column for time 
-- fluxcol: column for fluex
-- save_plot_per: save plots of periodogram every xx iterations (disabled with 0).
+- fluxcol: column for fluxes
+- save_data_res: save data of residual every xx iterations
+- save_plot_resps: write residual spectrum after last iteration (binary flag)
+- max_iter: maximum number of iterations
+- header_lines: skip xx header lines
   
 ## Output
 - Directory 'results', containing subdirectories corresponding to every analysed light curve. Each subdirectory contains:
   - file best_modes.dat with 8 columns containing the values of the most significant frequencies, amplitudes, phases, the corresponding errors, SNR/FAP and the rms
-  - file lc.dat, the light curve in format .dat for using with other codes, such as SigSpec (Reegen 2007)
-  - file pg.dat, the periodogram of the original light curve
-  - LC.png, the plot of the light curve
-  - LS.png, a plot of the Lomb-Scargle periodogram of the original light curve (i.e. pg.dat)
-  - LS_n.png, a plot of the periodogram obtained after a number n of extracted peaks
-  - res_lc.dat, with the final residual after extracting all the most significant frequencies
-  - res_ps.dat, with the periodogram of the final residual after extracting all the most significant frequencies.
+  - res_lc.dat (optional), with the final residual after extracting all the most significant frequencies
+  - Other intermediate residual files if save_data_res parameter is activated
+  - res_ps.dat (optional), with the periodogram of the final residual after extracting all the most significant frequencies.
   
 Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.
 
