@@ -1,5 +1,8 @@
 Multimodes2 update file.
 
+v0.1.2
+- Minor improvements in efficiency.
+
 v0.1.1 # Added by Antonio García Hernández
 - FEATURE: MultiModes2 can be imported from a jupyter notebook or run in the terminal. See README.md for instructions.
 - defaults function sets default parameter values. 
