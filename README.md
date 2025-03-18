@@ -39,6 +39,7 @@ Python >=3.8 with the following modules installed:
 - timecol: column for time 
 - fluxcol: column for fluxes
 - save_data_res: save data of residual every xx iterations
+- save_freq_list: parameter allows to save intermediate results files each xx iterations. It is recommended that this number coincides with save_data_res being a multiple of sim_fit_n also.
 - save_plot_resps: write residual spectrum after last iteration (binary flag)
 - max_iter: maximum number of iterations
 - header_lines: skip xx header lines
@@ -47,7 +48,7 @@ Python >=3.8 with the following modules installed:
 - Directory 'results', containing subdirectories corresponding to every analysed light curve. Each subdirectory contains:
   - file best_modes.dat with 8 columns containing the values of the most significant frequencies, amplitudes, phases, the corresponding errors, SNR/FAP and the rms
   - res_lc.dat (optional), with the final residual after extracting all the most significant frequencies
-  - Other intermediate residual files if save_data_res parameter is activated
+  - Other intermediate residual files if save_data_res and/or save_freq_list parameter are activated
   - res_ps.dat (optional), with the periodogram of the final residual after extracting all the most significant frequencies.
   
 Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.
