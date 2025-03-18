@@ -47,6 +47,7 @@ def defaults():
     fluxcol = 2 # lightcurve
     #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
     save_data_res = 0  # save data of residual every xx iterations # Multimodes
+    save_freq_list = 0 # save result files (freq.list) every xx iterations
     save_plot_resps = 0  # write residual spectrum after last iteration
     max_iter = 1000 # Multimodes
     header_lines = 1 # skip header lines # lightcurve
@@ -63,8 +64,8 @@ def defaults():
     S_N = []       # SNR values for each extracted frequency # snr_or_faps
     # all_rms = []  # Residual RMS for each step of the prewhitening cascade
 
-    #return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N
-    return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, max_iter, header_lines, all_faps, S_N
+    #return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N
+    return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N
 
 def sinusoid(t, A, f, ph):
     """Sine function to fit a harmonic component to a light curve."""
@@ -222,8 +223,8 @@ def multimodes(args, dash = 100*'-'):
     # args = parser.parse_args()
 
     # Default initial parameters. 
-    #osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
-    osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
+    #osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
+    osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
 
     # Reading the initial file with the values of the parameters, if it exists
     if args.p:
@@ -259,6 +260,12 @@ def multimodes(args, dash = 100*'-'):
                     save_plot_resps = int(line.split(' ')[1])
                 if line.startswith("header_lines"):
                     header_lines = int(line.split(' ')[1])
+                if line.startswith("max_iter"):
+                    max_iter = int(line.split(' ')[1])
+                    if max_iter==0:
+                        max_iter = 1e6
+                if line.startwith("save_freq_list"):
+                    save_freq_list = int(line.split(' ')[1])
     else:
         print('No param file. Default values will be used:')
 
@@ -495,7 +502,22 @@ def multimodes(args, dash = 100*'-'):
                             lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
                             lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                         index=False, header = None)
-
+                            
+                    # Write the frequency list
+                    if save_freq_list !=0:
+                        if np.mod(num, save_freq_list) == 0:
+                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                    'Amps': all_max_amps,
+                                                    'Phases': all_phs,
+                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                    'SNR/FAP': snr_or_faps,
+                                                    'rms': all_rms}
+                                                )
+                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                                           index=False, header=None)
+                    
                     n += 1
                     num += 1
                     if n > sim_fit_n:
