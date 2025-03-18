@@ -264,7 +264,7 @@ def multimodes(args, dash = 100*'-'):
                     max_iter = int(line.split(' ')[1])
                     if max_iter==0:
                         max_iter = 1e6
-                if line.startwith("save_freq_list"):
+                if line.startswith("save_freq_list"):
                     save_freq_list = int(line.split(' ')[1])
     else:
         print('No param file. Default values will be used:')
