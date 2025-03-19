@@ -446,6 +446,21 @@ def multimodes(args, dash = 100*'-'):
                             lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                         index=False, header = None)
 
+                    # Write the frequency list
+                    if save_freq_list !=0:
+                        if np.mod(num, save_freq_list) == 0:
+                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                    'Amps': all_max_amps,
+                                                    'Phases': all_phs,
+                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                    'SNR/FAP': snr_or_faps,
+                                                    'rms': all_rms}
+                                                )
+                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                                           index=False, header=None)
+                    
                     n += 1
                     num += 1
                     if n > sim_fit_n:
