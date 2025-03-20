@@ -47,7 +47,7 @@ def defaults():
     fluxcol = 2 # lightcurve
     #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
     save_data_res = 0  # save data of residual every xx iterations # Multimodes
-    save_freq_list = 0 # save result files (freq.list) every sim_fit_n iterations
+    save_freq_list = 0 # save result files (freq.list) every xx iterations (must be a multiple of sim_fit_n)
     save_plot_resps = 0  # write residual spectrum after last iteration
     max_iter = 1000 # Multimodes
     header_lines = 1 # skip header lines # lightcurve
@@ -461,17 +461,18 @@ def multimodes(args, dash = 100*'-'):
                     
                         # Write the frequency list
                         if save_freq_list !=0:
-                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
-                                                    'Amps': all_max_amps,
-                                                    'Phases': all_phs,
-                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
-                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
-                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
-                                                    'SNR/FAP': snr_or_faps,
-                                                    'rms': all_rms}
-                                                )
-                            prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
-                                            index=False, header=None)
+                            if np.mod(num, save_freq_list) == 0:
+                                prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                        'Amps': all_max_amps,
+                                                        'Phases': all_phs,
+                                                        'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                        'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                        'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                        'SNR/FAP': snr_or_faps,
+                                                        'rms': all_rms}
+                                                    )
+                                prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
+                                                index=False, header=None)
                         
                         n = 1
                         params = Parameters()
@@ -533,17 +534,18 @@ def multimodes(args, dash = 100*'-'):
 
                         # Write the frequency list
                         if save_freq_list !=0:
-                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
-                                                    'Amps': all_max_amps,
-                                                    'Phases': all_phs,
-                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
-                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
-                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
-                                                    'SNR/FAP': snr_or_faps,
-                                                    'rms': all_rms}
-                                                )
-                            prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
-                                            index=False, header=None)
+                            if np.mod(num, save_freq_list) == 0:
+                                prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                        'Amps': all_max_amps,
+                                                        'Phases': all_phs,
+                                                        'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                        'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                        'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                        'SNR/FAP': snr_or_faps,
+                                                        'rms': all_rms}
+                                                    )
+                                prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
+                                                index=False, header=None)
                         
                         n = 1
                         params = Parameters()
