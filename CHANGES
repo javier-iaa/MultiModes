@@ -1,7 +1,7 @@
 Multimodes2 update file.
 
 v0.1.2
-- save_freq_list parameter allows to save intermediate results files each sim_fit_n iterations
+- save_freq_list parameter allows to save intermediate results files each xx iterations (must be a multiple of sim_fit_n)
 - Minor improvements in efficiency.
 
 v0.1.1 # Added by Antonio García Hernández
