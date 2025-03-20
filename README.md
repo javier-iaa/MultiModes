@@ -39,7 +39,7 @@ Python >=3.8 with the following modules installed:
 - timecol: column for time 
 - fluxcol: column for fluxes
 - save_data_res: save data of residual every xx iterations
-- save_freq_list: parameter allows to save intermediate results files each sim_fit_n iterations.
+- save_freq_list: parameter allows to save intermediate results files each xx iterations (must be a multiple of sim_fit_n).
 - save_plot_resps: write residual spectrum after last iteration (binary flag)
 - max_iter: maximum number of iterations
 - header_lines: skip xx header lines
