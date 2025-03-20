@@ -16,7 +16,7 @@ Author: Javier Pascual Granado (IAA-CSIC)
 Contributors: Antonio García, Sebastiano de Franciscis, Cristian Rodrigo
 
 Version: 0.1.2 (see CHANGES)
-20:00 mar 17, 2025
+20:00 mar 20, 2025
 """
 
 import numpy as np
@@ -47,7 +47,7 @@ def defaults():
     fluxcol = 2 # lightcurve
     #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
     save_data_res = 0  # save data of residual every xx iterations # Multimodes
-    save_freq_list = 0 # save result files (freq.list) every xx iterations
+    save_freq_list = 0 # save result files (freq.list) every sim_fit_n iterations
     save_plot_resps = 0  # write residual spectrum after last iteration
     max_iter = 1000 # Multimodes
     header_lines = 1 # skip header lines # lightcurve
@@ -445,21 +445,6 @@ def multimodes(args, dash = 100*'-'):
                             lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
                             lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                         index=False, header = None)
-
-                    # Write the frequency list
-                    if save_freq_list !=0:
-                        if np.mod(num, save_freq_list) == 0:
-                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
-                                                    'Amps': all_max_amps,
-                                                    'Phases': all_phs,
-                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
-                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
-                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
-                                                    'SNR/FAP': snr_or_faps,
-                                                    'rms': all_rms}
-                                                )
-                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
-                                           index=False, header=None)
                     
                     n += 1
                     num += 1
@@ -473,6 +458,21 @@ def multimodes(args, dash = 100*'-'):
                         #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
                         #periodograms.append(ls0)
                         #n_per.append(sim_fit_n+n_per[-1])
+                    
+                        # Write the frequency list
+                        if save_freq_list !=0:
+                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                    'Amps': all_max_amps,
+                                                    'Phases': all_phs,
+                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                    'SNR/FAP': snr_or_faps,
+                                                    'rms': all_rms}
+                                                )
+                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                                            index=False, header=None)
+                        
                         n = 1
                         params = Parameters()
                 else:
@@ -517,21 +517,6 @@ def multimodes(args, dash = 100*'-'):
                             lc_df = pd.DataFrame({'Time':time, 'Flux':list(lc)})
                             lc_df.to_csv(newpath+'res_'+str(num)+'.dat', sep = ' ',
                                         index=False, header = None)
-                            
-                    # Write the frequency list
-                    if save_freq_list !=0:
-                        if np.mod(num, save_freq_list) == 0:
-                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
-                                                    'Amps': all_max_amps,
-                                                    'Phases': all_phs,
-                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
-                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
-                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
-                                                    'SNR/FAP': snr_or_faps,
-                                                    'rms': all_rms}
-                                                )
-                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
-                                           index=False, header=None)
                     
                     n += 1
                     num += 1
@@ -545,6 +530,21 @@ def multimodes(args, dash = 100*'-'):
                         #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
                         #periodograms.append(ls0)
                         #n_per.append(sim_fit_n+n_per[-1])
+
+                        # Write the frequency list
+                        if save_freq_list !=0:
+                            prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                                                    'Amps': all_max_amps,
+                                                    'Phases': all_phs,
+                                                    'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                                                    'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                                                    'Phase 1-sigma error (c/d)': all_sigma_phs,
+                                                    'SNR/FAP': snr_or_faps,
+                                                    'rms': all_rms}
+                                                )
+                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                                            index=False, header=None)
+                        
                         n = 1
                         params = Parameters()
                 else:
