@@ -470,7 +470,7 @@ def multimodes(args, dash = 100*'-'):
                                                     'SNR/FAP': snr_or_faps,
                                                     'rms': all_rms}
                                                 )
-                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                            prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
                                             index=False, header=None)
                         
                         n = 1
@@ -542,7 +542,7 @@ def multimodes(args, dash = 100*'-'):
                                                     'SNR/FAP': snr_or_faps,
                                                     'rms': all_rms}
                                                 )
-                            prew_df.to_csv(newpath+'freqs_'+str(num)+'.dat', sep=' ',
+                            prew_df.to_csv(newpath+'freqs_'+str(num-1)+'.dat', sep=' ',
                                             index=False, header=None)
                         
                         n = 1
