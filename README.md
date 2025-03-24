@@ -7,9 +7,9 @@ Modifications by Javier Pascual Granado (IAA-CSIC) are aimed to make the code mo
 Other contributors: Antonio García Hernández (UGR), Sebastiano de Franciscis (IAA-CSIC) and Cristian Rodrigo.
 
 ## Description
-MultiModes2 takes as input a directory with light curves, corrected from 'outliers' and 'nan' values, in fits or ascii format and the initial parameters written in a text file named ini.txt
+MultiModes2 takes as input a directory (or file) with light curves, which are assumed to be corrected from trends, outliers and 'nan' values. The files can be in fits or ascii format. It also requires the initial parameters to be written in a text file (named ini.txt by default).
 
-With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as  stop criterion that S/N is greater than 4, (Breger 1993). Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
+With every light curve, the code calculates the frequencies spectrum, or periodogram, with the Fast Lomb Scargle algorithm (Press & Ribicky 1989). It extracts the higher amplitude peak and evaluates if it is real signal or due to noise, either by the False Alarm Probability or by the Signal to Noise criterion, it is a decision of the user at the time of choosing the initial parameters. By default it is chosen to use as stop criterion that S/N is greater than 4, (Breger 1993) but this can be modified for a more suited choice. Then, Multimodes fits frequency, amplitude and phase through non-linear optimization, using a multisine function. This function is redefined with the new calculated parameters at each iteration. It does a simultaneous fit of a number of peaks (20 by default). Then, they are subtracted from the original signal and goes back to the beginning of the loop with the residual, repeating the same process, until the stop criterion is reached. 
  
 Multimodes make use of [astropy](https://www.astropy.org) for the calculation of the periodograms and [lmfit](https://lmfit.github.io/lmfit-py/) for the non-linear and simultaneous fitting of the extracted signals, using the non-linear least squares method for python.
 
@@ -51,7 +51,8 @@ Python >=3.8 with the following modules installed:
   - Other intermediate residual files if save_data_res and/or save_freq_list parameter are activated
   - res_ps.dat (optional), with the periodogram of the final residual after extracting all the most significant frequencies.
   
-Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.
+Screen output shows the parameters for the peak at maximum amplitude of the Lomb-Scargle periodogram for each iteration.  
+**NOTE:** These parameters might change at every iteration but the screen ouput just show the last frequency detected in the periodogram. The correct frequency parameter can only be seen in the result files, the screen output is just for reference.  
 
 # How to run it
 - Copy MultiModes2.py and ini.txt to your working directory.
