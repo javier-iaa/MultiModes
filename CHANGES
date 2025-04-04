@@ -1,4 +1,8 @@
 Multimodes2 update file.
+v0.1.3
+- clean_close parameter allows to clean frequencies that are closer than Rayleigh from the output frequency list. This was implemented in the original Multimodes by default and commented out from my previous versions of Multimodes2 because it didn't work fine. Now that is tested, a fixed version is re-introduced but it can be control with the optional parameter since it is not always desirable.
+- Several changes to improve the convergence of the solution and efficiency: subtracting the mean from residuals, constraining the amplitudes, trust-region algorithm (least_squares) is used for the fitting, etc.
+- Minor improvements: defaults function no longer necessary.
 
 v0.1.2
 - save_freq_list parameter allows to save intermediate results files each xx iterations (must be a multiple of sim_fit_n)
