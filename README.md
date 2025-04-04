@@ -30,19 +30,23 @@ Python >=3.8 with the following modules installed:
 - ini.txt with optional parameters
 
 ## Optional parameters:
-- sim_fit_n: Number of simultaneous peaks to be fitted before extracting to the original light curve for obtaining the residual: 20 by default
-- max_freq: Maximum value of the analysed frequencies domain: 100 c/d by default (delta Scuti stars)
-- os_ratio: oversampling factor, 5 by default
-- stop: Stop criterion, FAP or SNR, SNR by default
-- min_snr: Minimum signal to noise ratio, 4 by default (Breger 1993)
-- max_fap: Maximum value of the False Alarm Probability, 0.01 by default (Balona et al. 2014)
-- timecol: column for time 
-- fluxcol: column for fluxes
-- save_data_res: save data of residual every xx iterations
-- save_freq_list: parameter allows to save intermediate results files each xx iterations (must be a multiple of sim_fit_n).
-- save_plot_resps: write residual spectrum after last iteration (binary flag)
-- max_iter: maximum number of iterations
-- header_lines: skip xx header lines
+- sim_fit_n (20 by default): Number of simultaneous peaks to be fitted before extracting to the original light curve for obtaining the residual
+- max_freq (100 by default): Maximum value of the analysed frequencies
+- osratio (5 by default): oversampling factor. Compare with low, medium and high (10, 15, 20x) in Period04. 
+- stop (SNR by default): Stop criterion, FAP or SNR.
+- min_snr (4 by default, Breger 1993): Minimum signal to noise ratio to detect a frequency
+- max_fap (0.01 by default, Balona et al. 2014): Maximum value of the False Alarm Probability to detect a frequency.
+- timecol (default is 1): column for time 
+- fluxcol (default is 2): column for fluxes
+- save_data_res (default is 0): save data of residual every xx iterations
+- save_freq_list (default is 0): parameter allows to save intermediate results files each xx iterations (must be a multiple of sim_fit_n).
+- save_plot_resps (default is 0): write residual spectrum after last iteration (binary flag)
+- max_iter (default is 1000): maximum number of iterations
+- header_lines (default is 1): skip xx header lines
+- clean_close (0 by default): remove the less significant frequencies that are closer than Rayleigh (i.e. might be spurious). This might be useful only when osratio>1.
+
+Note: In clean_close only final results are cleaned and not intermediate files. Yake into account that the Rayleigh frequency is a limit to detect separate frequencies in the periodogram due to the leakage but this is different for a non-linear least squares in time, where the full information (not only the amplitudes) is used for the fitting and much closer frequencies can be fitted. Therefore, frequencies that are closer than Rayleigh in the final solution are not necessarily spurious and clean_close should be use with care, especially, if osratio is 1.
+
   
 ## Output
 - Directory 'results', containing subdirectories corresponding to every analysed light curve. Each subdirectory contains:
