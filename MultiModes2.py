@@ -15,8 +15,8 @@ Author: Javier Pascual Granado (IAA-CSIC)
 
 Contributors: Antonio García, Sebastiano de Franciscis, Cristian Rodrigo
 
-Version: 0.1.2 (see CHANGES)
-20:00 mar 20, 2025
+Version: 0.1.3 (see CHANGES)
+12:00 abr 04, 2025
 """
 
 import numpy as np
@@ -33,39 +33,6 @@ import glob
 from timeit import default_timer as timer
 
 # ---- FUNCTION DEFINITIONS ----
-
-def defaults():
-    # Default initial parameters
-
-    osratio = 5  # Oversampling ratio # Periodogram
-    max_freq = 100  # Max frequency in the periodogram # Periodogram
-    sim_fit_n = 20  # Max number of frequencies of the simultaneous fit # Multimodes
-    stop = 'SNR'  # Stop criterion # Multimodes
-    min_snr = 4.0  # Min value of Signal-to-Noise Ratio (SNR) to detect a frequency # Multimodes
-    max_fap = 0.01  # Max value of False Alarm Probability (FAP) # Multimodes
-    timecol = 1  # column order for time and fluxes # lightcurve
-    fluxcol = 2 # lightcurve
-    #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
-    save_data_res = 0  # save data of residual every xx iterations # Multimodes
-    save_freq_list = 0 # save result files (freq.list) every xx iterations (must be a multiple of sim_fit_n)
-    save_plot_resps = 0  # write residual spectrum after last iteration
-    max_iter = 1000 # Multimodes
-    header_lines = 1 # skip header lines # lightcurve
-
-    # Initializing the necessary lists
-
-    # all_best_freqs = []  # extracted frequencies
-    # all_max_amps = []    # extracted amplitudes
-    # all_phs = []         # extracted phases
-    # all_sigma_amps = []  # min errors in the amplitudes
-    # all_sigma_freqs = []  # min errors in the frequencies
-    # all_sigma_phs = []   # min errors in the phases
-    all_faps = []  # FAP values for each extracted frequency # snr_or_faps
-    S_N = []       # SNR values for each extracted frequency # snr_or_faps
-    # all_rms = []  # Residual RMS for each step of the prewhitening cascade
-
-    #return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N
-    return osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N
 
 def sinusoid(t, A, f, ph):
     """Sine function to fit a harmonic component to a light curve."""
@@ -195,6 +162,7 @@ def comb_freqs(pd):
 
     return comb_freqs, comb_amps, n1_n2_values
 """
+
 def arguments(agrv):
     '''Function to parse the command line arguments'''
     parser = argparse.ArgumentParser(description='Open the directory with the \
@@ -211,20 +179,28 @@ def arguments(agrv):
 # Here begins the main part of the code
 def multimodes(args, dash = 100*'-'): 
 
-    # Creating the directory with the fits files as argument to the command line
-    # parser = argparse.ArgumentParser(description='Open the directory with the \
-    #                                 files to be processed')
-    # parser.add_argument('--p', type=str, help='Select a parameters file')
-    # command_group = parser.add_mutually_exclusive_group()
-    # command_group.add_argument('--d', type=str, help='Select a directory \
-    #                         containing a list of files')
-    # command_group.add_argument('--file', type=str, help='Select a single \
-    #                         file to be opened')
-    # args = parser.parse_args()
+    # Default initial parameters
+    
+    osratio = 5  # Oversampling ratio # Periodogram
+    max_freq = 100  # Max frequency in the periodogram # Periodogram
+    sim_fit_n = 20  # Max number of frequencies of the simultaneous fit # Multimodes
+    stop = 'SNR'  # Stop criterion # Multimodes
+    min_snr = 4.0  # Min value of Signal-to-Noise Ratio (SNR) to detect a frequency # Multimodes
+    max_fap = 0.01  # Max value of False Alarm Probability (FAP) # Multimodes
+    timecol = 1  # column order for time and fluxes # lightcurve
+    fluxcol = 2 # lightcurve
+    #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
+    save_data_res = 0  # save data of residual every xx iterations # Multimodes
+    save_freq_list = 0 # save result files (freq.list) every xx iterations (must be a multiple of sim_fit_n)
+    save_plot_resps = 0  # write residual spectrum after last iteration
+    max_iter = 1000 # Multimodes
+    header_lines = 1 # skip header lines # lightcurve
+    clean_close = 0 # clean frequencies that are closer than Rayleigh 
 
-    # Default initial parameters. 
-    #osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_plot_per, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
-    osratio, max_freq, sim_fit_n, stop, min_snr, max_fap, timecol, fluxcol, save_data_res, save_freq_list, save_plot_resps, max_iter, header_lines, all_faps, S_N = defaults() # Initialize default values
+    # Initializing the necessary lists
+
+    all_faps = []  # FAP values for each extracted frequency # snr_or_faps
+    S_N = []       # SNR values for each extracted frequency # snr_or_faps
 
     # Reading the initial file with the values of the parameters, if it exists
     if args.p:
@@ -266,6 +242,8 @@ def multimodes(args, dash = 100*'-'):
                         max_iter = 1e6
                 if line.startswith("save_freq_list"):
                     save_freq_list = int(line.split(' ')[1])
+                if line.startswith("clean_close"):
+                    clean_close = int(line.split(' ')[1])
     else:
         print('No param file. Default values will be used:')
 
@@ -367,7 +345,7 @@ def multimodes(args, dash = 100*'-'):
             os.makedirs(newpath)
 
         # Calculating the initial periodogram
-        lc0 = lc
+        lc0 = lc - np.mean(lc)
         ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq)  # osratio and max_freq are not global anymore
         #periodograms = [ls0, ]
         #n_per = [0, ]
@@ -412,16 +390,20 @@ def multimodes(args, dash = 100*'-'):
                     snr_or_faps.append(snr)
                     all_rms.append(rms)
                     all_sigma_amps.append(sigma_amp)
-                    new_guesses = [amp, freq, ph]
-                    params.add('p_'+str(n)+'a', value=new_guesses[0])
-                    params.add('p_'+str(n)+'b', value=new_guesses[1],
-                            min=freq-rayleigh/2, max=freq+rayleigh/2)
-                    params.add('p_'+str(n)+'c', value=new_guesses[2])
+                    minamp = amp/2
+                    maxamp = (3/2)*amp
+                    minfreq = freq - rayleigh/2
+                    maxfreq = freq + rayleigh/2
+                    minph = 0
+                    maxph = 1
+                    params.add('p_'+str(n)+'a', value=amp, min=minamp, max=maxamp)
+                    params.add('p_'+str(n)+'b', value=freq, min=minfreq, max=maxfreq)
+                    params.add('p_'+str(n)+'c', value=ph, min=minph, max=maxph)
                     # best_freqs = fit(time, params)[2]
                     max_amps = fit(time, params)[1]
-                    # method changed from 'least_squares' to 'leastsq'
+
                     res = minimize(residual, params, args=(time, lc0),
-                                method='leastsq')
+                                method='least_squares')
                     lc = res.residual
                     params = res.params
 
@@ -454,7 +436,7 @@ def multimodes(args, dash = 100*'-'):
                         all_phs += fit(time, params)[3]
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
-                        lc0 = lc
+                        lc0 = lc - np.mean(lc)
                         #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
                         #periodograms.append(ls0)
                         #n_per.append(sim_fit_n+n_per[-1])
@@ -491,15 +473,20 @@ def multimodes(args, dash = 100*'-'):
                     snr_or_faps.append(fap)
                     all_rms.append(rms)
                     all_sigma_amps.append(sigma_amp)
-                    new_guesses = [amp, freq, ph]
-                    params.add('p_'+str(n)+'a', value=new_guesses[0])
-                    params.add('p_'+str(n)+'b', value=new_guesses[1])
-                    params.add('p_'+str(n)+'c', value=new_guesses[2])
+                    minamp = amp/2
+                    maxamp = (3/2)*amp
+                    minfreq = freq - rayleigh/2
+                    maxfreq = freq + rayleigh/2
+                    minph = 0
+                    maxph = 1
+                    params.add('p_'+str(n)+'a', value=amp, min=minamp, max=maxamp)
+                    params.add('p_'+str(n)+'b', value=freq, min=minfreq, max=maxfreq)
+                    params.add('p_'+str(n)+'c', value=ph, min=minph, max=maxph)
                     # best_freqs = fit(time, params)[2]
                     max_amps = fit(time, params)[1]
-                    # method changed from 'least_squares' to 'leastsq'
+
                     res = minimize(residual, params, args=(time, lc0),
-                                method='leastsq')
+                                method='least_squares')
                     lc = res.residual
                     params = res.params
                     sigma_freqs = [np.sqrt(6/N)/(pi*T)*sigma_lc/np.abs(a)
@@ -527,7 +514,7 @@ def multimodes(args, dash = 100*'-'):
                         all_phs += fit(time, params)[3]
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
-                        lc0 = lc
+                        lc0 = lc - np.mean(lc)
                         #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
                         #periodograms.append(ls0)
                         #n_per.append(sim_fit_n+n_per[-1])
@@ -557,37 +544,57 @@ def multimodes(args, dash = 100*'-'):
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
                     break
+        
+        prew_df = pd.DataFrame({'Freqs': all_best_freqs,
+                        'Amps': all_max_amps,
+                        'Phases': all_phs,
+                        'Amplitude 1-sigma error (mmag)': all_sigma_amps,
+                        'Frequency 1-sigma error (c/d)': all_sigma_freqs,
+                        'Phase 1-sigma error (c/d)': all_sigma_phs,
+                        'SNR/FAP': snr_or_faps,
+                        'rms': all_rms})
 
         # Filtering the frequencies that are closer than the Rayleigh resolution
-        """ TO REVISE AND UNCOMMENT AFTER TESTING
-        added_freqs = []
-        added_amps = []
-        copied_freqs = all_best_freqs.copy()
-        copied_amps = all_max_amps.copy()
-        filtered_freqs = all_best_freqs.copy()
+        # It compares amplitudes and removes less significant frequencies from the 
+        # list of filtered frequencies. This might be useful only when osratio>1
+        if clean_close != 0:
+            added_freqs = []
+            added_amps = []
+            copied_freqs = all_best_freqs.copy()
+            copied_amps = all_max_amps.copy()
+            filtered_freqs = set(all_best_freqs)  # faster membership testing
 
-        for (freq, amp) in zip(all_best_freqs, all_max_amps):
+            for (freq, amp) in zip(all_best_freqs, all_max_amps):
+                if freq in filtered_freqs:
+                    # Membership checks
+                    if freq in copied_freqs:
+                        copied_freqs.remove(freq)
+                    if amp in copied_amps:
+                        copied_amps.remove(amp)
 
-            if freq in filtered_freqs:
-                copied_amps.remove(amp)
-                added_freqs.append(freq)
-                added_amps.append(amp)
-                for (f,a)  in zip(copied_freqs, copied_amps):
-                    if added_freqs[-1]-rayleigh < f < added_freqs[-1]+rayleigh:
-                        if added_amps[-1] > a:
-                            if f in filtered_freqs:
-                                filtered_freqs.remove(f)
-                                prew_df = prew_df[prew_df.Freqs != f]
-                        else:
-                            if added_freqs[-1] in filtered_freqs:
-                                filtered_freqs.remove(added_freqs[-1])
-                                prew_df = prew_df[prew_df.Freqs != added_freqs[-1]]
-            else:
-                copied_freqs.remove(freq)
-                copied_amps.remove(amp)
+                    added_freqs.append(freq)
+                    added_amps.append(amp)
+
+                    for (f, a) in zip(copied_freqs, copied_amps):
+                        if added_freqs and (added_freqs[-1] - R < f < added_freqs[-1] + R):
+                            if added_amps[-1] > a:
+                                if f in filtered_freqs:
+                                    filtered_freqs.remove(f)
+                                    prew_df = prew_df[prew_df.Freqs != f]
+                            else:  # If the current amplitude is not greater, remove the current frequency
+                                if freq in filtered_freqs:
+                                    filtered_freqs.remove(freq)
+                                    prew_df = prew_df[prew_df.Freqs != freq]
+                else:
+                    # If the frequency is not in filtered_freqs, remove it from copied lists
+                    if freq in copied_freqs:
+                        copied_freqs.remove(freq)
+                    if amp in copied_amps:
+                        copied_amps.remove(amp)
 
 
         # Filtering the linear combinations of frequencies
+        """ TO REVISE AND UNCOMMENT AFTER TESTING
         try:
             combineds = comb_freqs(prew_df)[0]
 
@@ -601,16 +608,7 @@ def multimodes(args, dash = 100*'-'):
         reslc = pd.DataFrame({'Time': time, 'Residuals': lc})
         reslc.to_csv(newpath+'res_lc.dat', sep=' ', index=False, header=None)
 
-        # Write the frequency list
-        prew_df = pd.DataFrame({'Freqs': all_best_freqs,
-                                'Amps': all_max_amps,
-                                'Phases': all_phs,
-                                'Amplitude 1-sigma error (mmag)': all_sigma_amps,
-                                'Frequency 1-sigma error (c/d)': all_sigma_freqs,
-                                'Phase 1-sigma error (c/d)': all_sigma_phs,
-                                'SNR/FAP': snr_or_faps,
-                                'rms': all_rms}
-                            )
+        # Write the frequency list                            )
         prew_df.to_csv(newpath+'best_modes.dat', sep=' ', index=False,
                     header=None)
 
