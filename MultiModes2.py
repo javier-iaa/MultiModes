@@ -156,10 +156,8 @@ def box_noise_estimate(time, flux, best_freq, ampmax, indmpow, osratio=1):
     # (Aug 17, 2025) interval is extended to allow more flexibility
     minph = 0
     maxph = 1
-    print(initial_guess)
     bounds = ([minamp, minfreq, minph, -np.inf], [maxamp, maxfreq, maxph, np.inf])
     params,_ = curve_fit(sinusoid, time, flux, p0=initial_guess, bounds=bounds)
-    print(np.array(params))
     y_fit = sinusoid(time, *params)
     res_fit = y_fit - flux
 
