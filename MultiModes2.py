@@ -15,8 +15,8 @@ Author: Javier Pascual Granado (IAA-CSIC)
 
 Contributors: Antonio García, Sebastiano de Franciscis, Cristian Rodrigo
 
-Version: 0.1.3 (see CHANGES)
-12:00 abr 04, 2025
+Version: 0.1.4 (see CHANGES)
+10:00 abr 10, 2025
 """
 
 import numpy as np
@@ -27,43 +27,194 @@ from astropy.timeseries import LombScargle
 from astropy.io import fits
 from lmfit import Parameters, minimize
 from scipy import stats
+from scipy.optimize import curve_fit
 import os
 import argparse
 import glob
 from timeit import default_timer as timer
+import nifty_ls
 
 # ---- FUNCTION DEFINITIONS ----
 
-def sinusoid(t, A, f, ph):
-    """Sine function to fit a harmonic component to a light curve."""
-    return A*np.sin(2*pi*(f*t + ph))
+def sinusoid(time, A, fre, ph, B):
+        """Sine function to fit a harmonic component with adjusted freq."""
+        # (Aug 13, 2025) added B constant for floating mean, should avoid subtracting mean every iteration
+        sinu = A*np.sin(2*np.pi*(fre*time + ph)) + B
+        return sinu
 
+def initial_phase(x, y, best_freq, hifac=1, ofac=4.0):
+    """ This is my 'phispec.phases' function modified in order to output 
+     just the phase of the maximum in LS periodogram."""
+    n = len(x)
+    nout = int(0.5 * ofac * hifac * n)
+    nmax = nout + 1
+    twopi = 2*np.pi
+    ave = np.mean(y)
 
-def noise_estimate(time, flux, n=20):
+    xmax = np.max(x)
+    xmin = np.min(x)
+    xdif = xmax - xmin
+    xave = 0.5 * (xmax + xmin)
+    pnow = 1.0 / (xdif * ofac)
+    arg = twopi * ((x - xave) * pnow)
+    wpr = -2.0 * np.sin(0.5 * arg) ** 2
+    wpi = np.sin(arg)
+    wr0 = np.cos(arg)
+    wi0 = wpi
+
+    yy = (y - ave)
+    wk1 = pnow*(np.arange(nmax) + 1)
+    ibest = np.abs(wk1 - best_freq).argmin()
+
+    # Compute alpha in complex form
+    alpha = (1 + wpr) + 1j * wpi
+    r = np.abs(alpha)
+    theta = np.angle(alpha)
+
+    # Compute alpha^i using polar form
+    alpha = (r ** ibest) * (np.cos(ibest * theta) + 1j * np.sin(ibest * theta))
+
+    # Compute wr and wi at iteration i
+    wr = (alpha * (wr0 + 1j * wi0)).real
+    wi = (alpha * (wr0 + 1j * wi0)).imag
+
+    # Now use wr and wi in the original computation
+    sumsh = np.sum(wr * wi)
+    sumc = np.sum((wr - wi) * (wr + wi))
+    wtau = 0.5 * np.arctan2(2.0 * sumsh, sumc)
+    arg0 = -twopi * xave * wk1[ibest] - wtau
+    swtau = np.sin(wtau)
+    cwtau = np.cos(wtau)
+    ss = wi * cwtau - wr * swtau
+    cc = wr * cwtau + wi * swtau
+    sums = np.sum(ss ** 2)
+    sumc = np.sum(cc ** 2)
+    sumsy = np.sum(yy * ss)
+    sumcy = np.sum(yy * cc)
+
+    ph = (-np.arctan2(sumsy / np.sqrt(sums), sumcy / np.sqrt(sumc)) + arg0 ) % twopi
+    ph = twopi - ph
+    ph = ph/twopi
+
+    return ph
+
+def hf_noise_estimate(time, flux, osratio, n=100):
     """Estimation of noise using the mean of near-Nyquist frequency bins."""
-    ls = LombScargle(time, flux, normalization='psd',
-                     center_data=True, fit_mean=False)
-    frequency, power = ls.autopower()
     L = len(time)
-    amps = 2*np.sqrt(power/L)
+    tt = time[-1]-time[0]
+    avnyq = 0.5*L/tt
+    fre_step = 1/tt/osratio
     if L <= n:
         n = L-1
 
-    return np.mean(amps[(n-1):-1])  # last n bins excluding nyquist
+    # Indexes and freqs
+    rind = int(avnyq/fre_step) - 1
+    lind = rind - n
+    fre = fre_step*np.arange(lind, rind)
+    #power = LombScargle(time, flux, normalization='psd',
+    #                 center_data=True, fit_mean=False).power(fre)
+    #amps = 2*np.sqrt(power/L)
+
+    nifty_res = nifty_ls.lombscargle(time, flux, normalization='psd', center_data=True, fit_mean=False, 
+                             fmin=fre[0], fmax=fre[-1], Nf=len(fre))
+    amps = 2*np.sqrt(nifty_res.power/L)
+
+    return np.mean(amps)
+
+def global_noise_estimate(time, flux, osratio):
+    """Estimation of noise using the median of the whole periodogram."""
+    L = len(time)
+    ls = LombScargle(time, flux, normalization='psd',
+                     center_data=True, fit_mean=False)
+    # _, power = ls.autopower(samples_per_peak=osratio)
+    _, power = ls.autopower(samples_per_peak=osratio, method="fastnifty")
+    amps = 2*np.sqrt(power/L)
+
+    return np.median(amps)
+
+def box_noise_estimate(time, flux, best_freq, ampmax, indmpow, osratio=1):
+    """Estimation of noise using a box around the frequency in the periodogram."""
+    # A typical mode density in dSct is 5 peaks per c/d
+    boxR = 4    # box in units of the Rayleigh freq. [nu - box/2, nu + box/2]
+    box = boxR*osratio
+    N = len(time)
+
+    # Initial guess for the phase
+    best_ph = initial_phase(time, flux, best_freq, ofac=osratio)
+
+    # Least squares fitting
+    # (14 Aug, 2025) bounds added to curve_fit to suppress negative amplitudes
+    dela = ampmax/2
+    minamp = ampmax - dela
+    maxamp = ampmax + dela
+    tt = time[-1]-time[0]
+    R = 1/tt
+    delf = R/2
+    minfreq = best_freq - delf
+    maxfreq = best_freq + delf
+    initial_guess = np.array([ampmax, best_freq, best_ph, 0.0])
+    # (Aug 17, 2025) interval is extended to allow more flexibility
+    minph = 0
+    maxph = 1
+    print(initial_guess)
+    bounds = ([minamp, minfreq, minph, -np.inf], [maxamp, maxfreq, maxph, np.inf])
+    params,_ = curve_fit(sinusoid, time, flux, p0=initial_guess, bounds=bounds)
+    print(np.array(params))
+    y_fit = sinusoid(time, *params)
+    res_fit = y_fit - flux
+
+    # Box indexes and freqs
+    lind = indmpow - int(box/2)
+    rind = indmpow + int(box/2) + 1
+    fre_step = best_freq/indmpow
+    fre = fre_step*np.arange(lind, rind)
+
+    # Periodogram of the residuals
+    nif = nifty_ls.lombscargle(time, res_fit, normalization='psd', center_data=True, fit_mean=False, 
+                                 fmin=fre[0], fmax=fre[-1], Nf=len(fre))
+    res_amps = 2*np.sqrt(nif.power/N)
+    noise = np.median(res_amps)
+    snr = params[0]/noise
+        
+    return noise, snr
+
+def noise_spectrum(time, flux, osratio, kernel_size):
+    """Estimation of noise spectrum using a median filter on the amplitude spectrum."""
+    ls = LombScargle(time, flux, normalization='psd',
+                     center_data=True, fit_mean=False)
+    _, power = ls.autopower(samples_per_peak=osratio)
+    L = len(time)
+    amps = 2*np.sqrt(power/L)
+
+    if kernel_size % 2 == 0: # fix for even kernel size
+        kernel_size = kernel_size + 1
+    
+    pad_size = kernel_size // 2
+    padded_amps = np.pad(amps, pad_size, mode='edge')
+    filtered_amps = np.zeros_like(amps)
+
+    for i in range(len(amps)):
+        # Extract the window
+        window = padded_amps[i:i + kernel_size]
+        # Compute the median
+        filtered_amps[i] = np.median(window)
+
+    return filtered_amps
 
 def periodogram(time, flux, osratio, max_freq): 
     '''Fast Lomb Scargle to calculate the periodogram (Press & Ribicky 1989)'''
-
     ls = LombScargle(time, flux, normalization = 'psd', 
                      center_data = True, fit_mean = False)
-    frequency, power = ls.autopower(method = 'fast', maximum_frequency = max_freq, 
-                                    samples_per_peak = osratio)
+#    frequency, power = ls.autopower(maximum_frequency = max_freq, samples_per_peak = osratio)
+    frequency, power = ls.autopower(maximum_frequency = max_freq, 
+                                    samples_per_peak = osratio, 
+                                    method="fastnifty")
     indmpow = np.argmax(power)
     best_frequency = frequency[indmpow]
     amps = 2*np.sqrt(power/len(time))
     ampmax = amps[indmpow]
 
-    return ls, frequency, amps, best_frequency, ampmax, power
+    return ls, frequency, amps, best_frequency, ampmax, power, indmpow
 
 def fit(t, params):
     '''Multi-sine fit function with all the parameters of frequencies, amplitudes, phases'''
@@ -72,11 +223,13 @@ def fit(t, params):
     amps_dict = {k:pars[k] for k in pars if 'a' in k}
     freqs_dict = {k:pars[k] for k in pars if 'b' in k}
     phs_dict = {k:pars[k] for k in pars if 'c' in k}
+    # (Aug 13, 2025) added b values as floating mean correction for the fitting
     freqs = list([pars[k] for k in freqs_dict])
     amps = list([pars[k] for k in amps_dict])
     phs = list([pars[k] for k in phs_dict])
+    b = [pars[k] for k in pars if 'm' in k]
     for (a, f, p) in zip(amps, freqs, phs):
-        y += sinusoid(t, a, f, p) 
+        y += sinusoid(t, a, f, p, b) 
     return y, amps, freqs, phs
 
 def residual(params, t, flux): 
@@ -102,9 +255,6 @@ def lightcurve(file, isfits, isascii, timecol, fluxcol, header_lines):
     T = time[-1] - time[0]
     N = len(time)
     r = 1/T   # Rayleigh frequency resolution
-
-#   mean_flux = np.mean(fluxes)
-#   fluxes = (fluxes-mean_flux)/mean_flux*1000 # convert fluxes to mmag
 
     return time, fluxes, T, N, r
 
@@ -151,7 +301,7 @@ def comb_freqs(pd):
 
     n1_n2_values = []
 
-    error = rayleigh
+    error = R
 
     for (ch, v) in zip(children1_2, n1_n2):
         for (f,a) in zip(freqs,amps):
@@ -179,28 +329,10 @@ def arguments(agrv):
 # Here begins the main part of the code
 def multimodes(args, dash = 100*'-'): 
 
-    # Default initial parameters
-    
-    osratio = 5  # Oversampling ratio # Periodogram
-    max_freq = 100  # Max frequency in the periodogram # Periodogram
-    sim_fit_n = 20  # Max number of frequencies of the simultaneous fit # Multimodes
-    stop = 'SNR'  # Stop criterion # Multimodes
-    min_snr = 4.0  # Min value of Signal-to-Noise Ratio (SNR) to detect a frequency # Multimodes
-    max_fap = 0.01  # Max value of False Alarm Probability (FAP) # Multimodes
-    timecol = 1  # column order for time and fluxes # lightcurve
-    fluxcol = 2 # lightcurve
-    #save_plot_per = 0  # save plots of periodogram every xx iterations # Multimodes
-    save_data_res = 0  # save data of residual every xx iterations # Multimodes
-    save_freq_list = 0 # save result files (freq.list) every xx iterations (must be a multiple of sim_fit_n)
-    save_plot_resps = 0  # write residual spectrum after last iteration
-    max_iter = 1000 # Multimodes
-    header_lines = 1 # skip header lines # lightcurve
-    clean_close = 0 # clean frequencies that are closer than Rayleigh 
-
     # Initializing the necessary lists
 
-    all_faps = []  # FAP values for each extracted frequency # snr_or_faps
-    S_N = []       # SNR values for each extracted frequency # snr_or_faps
+    all_faps = []  # FAP values for each extracted frequency
+    S_N = []       # SNR values for each extracted frequency
 
     # Reading the initial file with the values of the parameters, if it exists
     if args.p:
@@ -208,6 +340,26 @@ def multimodes(args, dash = 100*'-'):
     else:
         paramname = 'ini.txt'
     
+
+    # ---- Default initial parameters
+        
+    osratio = 5  # Oversampling ratio
+    max_freq = 100  # Max frequency in the periodogram
+    sim_fit_n = 20  # Max number of frequencies of the simultaneous fit
+    stop = 'SNR'  # Stop criterion # Multimodes
+    min_snr = 4.0  # Min value of Signal-to-Noise Ratio (SNR) to detect a frequency
+    max_fap = 0.01  # Max value of False Alarm Probability (FAP)
+    timecol = 1  # column order for time and fluxes
+    fluxcol = 2
+    #save_plot_per = 0  # save plots of periodogram every xx iterations
+    save_data_res = 0  # save data of residual every xx iterations
+    save_freq_list = 0 # save result files (freq.list) every xx iterations (must be a multiple of sim_fit_n)
+    save_plot_resps = 0  # write residual spectrum after last iteration
+    max_iter = 1000 # Multimodes
+    header_lines = 1 # skip header lines # lightcurve
+    clean_close = 0 # clean frequencies that are closer than Rayleigh 
+    noise_method = 'hf' # method to estimate the noise level
+
     if os.path.isfile(paramname):
         with open(paramname, 'r') as file:
             for line in file:
@@ -244,6 +396,8 @@ def multimodes(args, dash = 100*'-'):
                     save_freq_list = int(line.split(' ')[1])
                 if line.startswith("clean_close"):
                     clean_close = int(line.split(' ')[1])
+                if line.startswith("noise_method"):
+                    noise_method = line.split(' ')[1]
     else:
         print('No param file. Default values will be used:')
 
@@ -251,9 +405,9 @@ def multimodes(args, dash = 100*'-'):
     print('Number of frequencies of the simultaneous fit: ' + str(sim_fit_n))
     print('Samples per peak: ' + str(osratio))
     print('Maximum frequency: ' + str(max_freq))
-    if 'SNR' in stop:
+    if stop == 'SNR':
         print('Stop Criterion: SNR > ' + str(min_snr))
-    elif 'FAP' in stop:
+    elif stop == 'FAP':
         print('Stop Criterion: FAP < ' + str(max_fap))
 
 
@@ -315,12 +469,13 @@ def multimodes(args, dash = 100*'-'):
         n = 1
         num = 1
 
-        data = lightcurve(f, isascii=isascii, isfits=isfits, timecol=timecol, fluxcol=fluxcol, header_lines=header_lines)  # Extracting data of every light curve
+        data = lightcurve(f, isascii=isascii, isfits=isfits, 
+                          timecol=timecol, fluxcol=fluxcol, header_lines=header_lines)  # Extracting data of every light curve
         time = data[0]     # Time vector
         lc = data[1]       # Light curve
         T = data[2]        # Total time span
         N = data[3]        # Number of points
-        rayleigh = data[4]  # Rayleigh resolution
+        R = data[4]        # Rayleigh resolution
 
         sigma_lc = stats.sem(list(lc))  # 1-sigma error of fluxes
         sigma_amp = np.sqrt(2/N)*sigma_lc  # 1-sigma error of the amplitude
@@ -346,13 +501,16 @@ def multimodes(args, dash = 100*'-'):
 
         # Calculating the initial periodogram
         lc0 = lc - np.mean(lc)
-        ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq)  # osratio and max_freq are not global anymore
-        #periodograms = [ls0, ]
-        #n_per = [0, ]
-        per = pd.DataFrame({'Frequency': ls0[1], 'Amplitude': ls0[2]})
+        lc = lc0
+        #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq)
+        #per = pd.DataFrame({'Frequency': ls0[1], 'Amplitude': ls0[2]})
 
         # Noise level estimation
-        no = noise_estimate(time, lc)
+        if noise_method == "hf":
+            no = hf_noise_estimate(time, lc, osratio)            
+        else: 
+            if noise_method == "g":
+                no = global_noise_estimate(time, lc, osratio)
 
         """ Initialization of the lists to save the extracted frequencies,
         amplitudes and phases"""
@@ -375,33 +533,58 @@ def multimodes(args, dash = 100*'-'):
         print(dash)
 
         while n <= sim_fit_n:
-            ls = periodogram(time, lc, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
+            ls = periodogram(time, lc, osratio=osratio, max_freq=max_freq)
             freq = ls[3]  # freq at max power
             amp = ls[4]   # amp at max power
+            imax = ls[6]  # index of max power
             rms = np.sqrt(sum(lc**2)/N)
-            sigma_freq = np.sqrt(6/N)/(pi*T)*sigma_lc/amp  # freq error
-            ph = 0.5
-            snr = amp/no
+            #sigma_freq = np.sqrt(6/N)/(pi*T)*sigma_lc/amp  # freq error
+            #ph = 0.5
+
+            if noise_method == "box":
+                no, snr = box_noise_estimate(time, lc, freq, amp, imax, osratio=osratio)
+            else:
+                snr = amp/no
+                
             var = (N/4)*no**2
             fap = 1 - (1 - np.exp(-ls[5].max()/var))**(N/2)
+
+            # Print table of extracted frequencies from the LS periodogram
+            data = [num, freq, amp, snr]
+            print('{:<15d}{:>18f}{:>25f}{:>32}'.format(data[0],
+                                                    data[1],
+                                                    data[2],
+                                                    data[3]))
 
             if parade == min_snr:
                 if snr > parade and num < max_iter:  # Stop criterion
                     snr_or_faps.append(snr)
                     all_rms.append(rms)
                     all_sigma_amps.append(sigma_amp)
-                    minamp = amp/2
-                    maxamp = (3/2)*amp
-                    minfreq = freq - rayleigh/2
-                    maxfreq = freq + rayleigh/2
+
+                    # Non-linear least squares fitting
+                    dela = amp/2
+                    minamp = amp - dela
+                    maxamp = amp + dela
+                    delf = R/2
+                    minfreq = freq - delf
+                    maxfreq = freq + delf
+                    ph = initial_phase(time, lc, freq, ofac=osratio)
+                    # (Aug 17, 2025) interval is extended to allow more flexibility
                     minph = 0
                     maxph = 1
+                    # The old values for the search were ph = 0.5, minph=0, maxph=1
                     params.add('p_'+str(n)+'a', value=amp, min=minamp, max=maxamp)
                     params.add('p_'+str(n)+'b', value=freq, min=minfreq, max=maxfreq)
                     params.add('p_'+str(n)+'c', value=ph, min=minph, max=maxph)
+                    # (Aug 13, 2025) added p_m for the B parameter fitting the floating mean
+                    if n==1:
+                        params.add('p_m', value=0.0)
+
                     # best_freqs = fit(time, params)[2]
                     max_amps = fit(time, params)[1]
-
+                    
+                    # Residuals
                     res = minimize(residual, params, args=(time, lc0),
                                 method='least_squares')
                     lc = res.residual
@@ -410,16 +593,9 @@ def multimodes(args, dash = 100*'-'):
                     # Error estimation
                     sigma_freqs = [np.sqrt(6/N)/(pi*T)*sigma_lc/np.abs(a)
                                 for a in max_amps]
-                    sigma_freq = np.mean(sigma_freqs)
+                    #sigma_freq = np.mean(sigma_freqs)
                     sigma_phs = [sigma_amp/np.abs(a) for a in max_amps]
-                    sigma_ph = np.mean(sigma_phs)
-
-                    # Print table of extracted frequencies from the LS periodogram
-                    data = [num, freq, amp, snr]
-                    print('{:<15d}{:>18f}{:>25f}{:>32}'.format(data[0],
-                                                            data[1],
-                                                            data[2],
-                                                            data[3]))
+                    #sigma_ph = np.mean(sigma_phs)
                     
                     # Save residuals
                     if save_data_res != 0:
@@ -437,7 +613,7 @@ def multimodes(args, dash = 100*'-'):
                         all_sigma_freqs += sigma_freqs
                         all_sigma_phs += sigma_phs
                         lc0 = lc - np.mean(lc)
-                        #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq) # osratio and max_freq are not global anymore
+                        #ls0 = periodogram(time, lc0, osratio = osratio, max_freq = max_freq)
                         #periodograms.append(ls0)
                         #n_per.append(sim_fit_n+n_per[-1])
                     
@@ -473,32 +649,46 @@ def multimodes(args, dash = 100*'-'):
                     snr_or_faps.append(fap)
                     all_rms.append(rms)
                     all_sigma_amps.append(sigma_amp)
-                    minamp = amp/2
-                    maxamp = (3/2)*amp
-                    minfreq = freq - rayleigh/2
-                    maxfreq = freq + rayleigh/2
+                    # Non-linear least squares fitting
+                    dela = amp/2
+                    minamp = amp - dela
+                    maxamp = amp + dela
+                    delf = R/2
+                    minfreq = freq - delf
+                    maxfreq = freq + delf
+                    ph = initial_phase(time, lc, freq, ofac=osratio)
+                    # (Aug 17, 2025) interval is extended to allow more flexibility
                     minph = 0
                     maxph = 1
+                    # The old values for the search were ph = 0.5, minph=0, maxph=1
                     params.add('p_'+str(n)+'a', value=amp, min=minamp, max=maxamp)
                     params.add('p_'+str(n)+'b', value=freq, min=minfreq, max=maxfreq)
                     params.add('p_'+str(n)+'c', value=ph, min=minph, max=maxph)
+                    # (Aug 13, 2025) added p_m for the B parameter fitting the floating mean
+                    if n==1:
+                        params.add('p_m', value=0.0)
+
                     # best_freqs = fit(time, params)[2]
                     max_amps = fit(time, params)[1]
-
+                    
+                    # Residuals
                     res = minimize(residual, params, args=(time, lc0),
                                 method='least_squares')
                     lc = res.residual
                     params = res.params
+                    
+                    # Error estimation
                     sigma_freqs = [np.sqrt(6/N)/(pi*T)*sigma_lc/np.abs(a)
                                 for a in max_amps]
-                    sigma_freq = np.mean(sigma_freqs)
+                    #sigma_freq = np.mean(sigma_freqs)
                     sigma_phs = [sigma_amp/np.abs(a) for a in max_amps]
-                    sigma_ph = np.mean(sigma_phs)
+                    #sigma_ph = np.mean(sigma_phs)
                     data = [num, freq, amp, fap]
                     print('{:<15d}{:>18f}{:>25f}{:>32}'.format(data[0],
                                                             data[1],
                                                             data[2],
                                                             data[3]))
+                    
                     # Save residuals
                     if save_data_res != 0:
                         if np.mod(num, save_data_res) == 0:

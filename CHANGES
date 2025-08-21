@@ -1,4 +1,12 @@
 Multimodes2 update file.
+v0.1.4
+- Using nifty_ls for a much faster computation of the Lomb-Scargle periodogram
+- FEATURE: noise_method parameter allows to choose the method to estimate the noise level: 'hf', 'g', 'box', for mean of high frequencies, median of the whole spectrum or median of the background inside a box.
+- hf_noise_estimate (previously noise_estimate) is fixed by using nyquist_factor=1 and other minor improvements.
+- periodogram uses method='auto' instead of 'fast', which is only valid for regular sampling.
+- function initial_phase estimates the phase from complex fourier transform in order to improve the non-linear least squares and the noise level estimation.
+- Other minor improvements.
+
 v0.1.3
 - clean_close parameter allows to clean frequencies that are closer than Rayleigh from the output frequency list. This was implemented in the original Multimodes by default and commented out from my previous versions of Multimodes2 because it didn't work fine. Now that is tested, a fixed version is re-introduced but it can be control with the optional parameter since it is not always desirable.
 - Several changes to improve the convergence of the solution and efficiency: subtracting the mean from residuals, constraining the amplitudes, trust-region algorithm (least_squares) is used for the fitting, etc.
