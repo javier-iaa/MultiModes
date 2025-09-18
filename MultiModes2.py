@@ -864,7 +864,13 @@ if __name__ == "__main__":
     print(dash)
 
     # Reading the arguments
-    args = arguments(agrv = sys.argv[1:])
+    #args = arguments(agrv = sys.argv[1:])
+
+    # Debugging mode (when finished, comment these lines
+    # and uncomment previous line)
+    fi = "TIC230016910_pre.dat"
+    agrv = ["--file", fi]
+    args = arguments(agrv = agrv)
 
     # Calling the primary function
     multimodes(args)
