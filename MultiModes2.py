@@ -132,8 +132,12 @@ def global_noise_estimate(time, flux, osratio):
 
     return np.median(amps)
 
-def box_noise_estimate(time, flux, best_freq, ampmax, indmpow, osratio=1):
+def box_noise_estimate(time, flux, best_freq, ampmax, indmpow, osr=10):
     """Estimation of noise using a box around the frequency in the periodogram."""
+    # (21 Aug, 2025) introduced a factor of 4 to guarantee well resolved peaks
+    # in the noise estimation.
+    osratio = osr*4
+    
     # A typical mode density in dSct is 5 peaks per c/d
     boxR = 4    # box in units of the Rayleigh freq. [nu - box/2, nu + box/2]
     box = boxR*osratio
@@ -540,7 +544,7 @@ def multimodes(args, dash = 100*'-'):
             #ph = 0.5
 
             if noise_method == "box":
-                no, snr = box_noise_estimate(time, lc, freq, amp, imax, osratio=osratio)
+                no, snr = box_noise_estimate(time, lc, freq, amp, imax, osr=osratio)
             else:
                 snr = amp/no
                 
