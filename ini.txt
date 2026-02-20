@@ -1,7 +1,9 @@
-sim_fit_n 20
-maxfreq 100
-osratio 5
-stop SNR
-min_snr 4
-max_fap 0.01
-tail_per 80
+sim_fit_n 10
+max_freq 80
+osratio 10
+min_snr 5
+save_data_res 50
+save_freq_list 1
+max_iter 0
+noise_method box 
+header_lines 0
