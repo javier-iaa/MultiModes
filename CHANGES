@@ -1,4 +1,12 @@
 Multimodes2 update file.
+v0.1.4
+- FEATURE: Added a constant to the sinusoid model as a floating mean. Should avoid subtracting mean every iteration and prevent issues like negative amplitudes.
+- FEATURE: initial_phase function implemented for improving the nonlinear least squares fitting solution. It is based on the Lomb-Scargle periodogram implementation of Scargle 1989 and Hocke 1998.
+- FEATURE: Noise estimation method can be selected between: hf (default), here near-Nyquist frequency bins are averaged; g, global noise estimate using the median of the whole periodogram; box, box noise estimate (default) using a box around the trial frequency in the periodogram.
+- FEATURE: periodograms are calculated now using the nifty module, which is at least 4 times faster and can be even 100 faster.
+- FEATURE: estimation of the noise spectrum through a median filter.
+- Other minor fixes and improvements. 
+ 
 v0.1.3
 - clean_close parameter allows to clean frequencies that are closer than Rayleigh from the output frequency list. This was implemented in the original Multimodes by default and commented out from my previous versions of Multimodes2 because it didn't work fine. Now that is tested, a fixed version is re-introduced but it can be control with the optional parameter since it is not always desirable.
 - Several changes to improve the convergence of the solution and efficiency: subtracting the mean from residuals, constraining the amplitudes, trust-region algorithm (least_squares) is used for the fitting, etc.
@@ -26,4 +34,4 @@ v0.1
 - Several fixes, code clean and optimised.
 - Previous used of numba was causing issues and now is removed for stability.
 
-Changes here above start from version 0.1, previous versions are not supported.
+Changes here above start from version 4.1, previous versions are not supported.
