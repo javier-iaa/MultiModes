@@ -4,7 +4,7 @@ The original Multimodes code is authored by David Pamos Ortega (University of Gr
 
 Modifications by Javier Pascual Granado (IAA-CSIC) are aimed to make the code more efficient, accesible and extensible.
 
-Other contributors: Antonio García Hernández (UGR), Sebastiano de Franciscis (IAA-CSIC) and Cristian Rodrigo.
+Other contributors: Carlos Camino (UGR), Antonio García Hernández (UGR), Sebastiano de Franciscis (IAA-CSIC) and Cristian Rodrigo.
 
 ## Description
 MultiModes2 takes as input a directory (or file) with light curves, which are assumed to be corrected from trends, outliers and 'nan' values. The files can be in fits or ascii format. It also requires the initial parameters to be written in a text file (named ini.txt by default).
